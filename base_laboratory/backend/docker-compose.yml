@@ -1,0 +1,78 @@
+services:
+  employee-service:
+    profiles:
+      - embedded-employee-service
+    build:
+      context: ${EMPLOYEE_SERVICE_DIR:-../employee_service}
+      dockerfile: Dockerfile
+    image: laboratory_employee_service:latest
+    container_name: laboratory_employee_service
+    restart: unless-stopped
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8010"
+    volumes:
+      - ${EMPLOYEE_SERVICE_DIR:-../employee_service}:/app
+    env_file:
+      - ../.env
+      - ${EMPLOYEE_SERVICE_DIR:-../employee_service}/.env
+    environment:
+      EMPLOYEE_SERVICE_DEBUG: "true"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,employee-service"
+      EMPLOYEE_SERVICE_API_KEYS: ${EMPLOYEE_SERVICE_API_KEY:-dev-employee-service-key}
+      FACE_SIMILARITY_THRESHOLD: "72.0"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laboratory_backend:latest
+    container_name: laboratory_backend_https
+    restart: unless-stopped
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8005"
+    volumes:
+      - .:/app
+    env_file:
+      - ../.env
+      - .env
+    environment:
+      DJANGO_DB_ENGINE: ${DJANGO_DB_ENGINE:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-laboratory_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env faylda belgilanishi shart}
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      EMPLOYEE_SERVICE_ENABLED: ${EMPLOYEE_SERVICE_ENABLED:-true}
+      EMPLOYEE_SERVICE_BASE_URL: ${EMPLOYEE_SERVICE_BASE_URL:-https://host.docker.internal:5000}
+      EMPLOYEE_SERVICE_PUBLIC_URL: ${EMPLOYEE_SERVICE_PUBLIC_URL:-https://192.168.2.72:5000}
+      EMPLOYEE_SERVICE_API_KEY: ${EMPLOYEE_SERVICE_API_KEY:-dev-employee-service-key}
+      EMPLOYEE_SERVICE_TIMEOUT: ${EMPLOYEE_SERVICE_TIMEOUT:-15}
+      EMPLOYEE_SERVICE_VERIFY_SSL: ${EMPLOYEE_SERVICE_VERIFY_SSL:-false}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: laboratory_backend_https_proxy
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "8050:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+
+  nginx-employee:
+    profiles:
+      - embedded-employee-service
+    image: nginx:1.27-alpine
+    container_name: laboratory_employee_https_proxy
+    restart: unless-stopped
+    depends_on:
+      - employee-service
+    ports:
+      - "${EMPLOYEE_SERVICE_PORT:-5000}:443"
+    volumes:
+      - ${EMPLOYEE_SERVICE_DIR:-../employee_service}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${EMPLOYEE_SERVICE_DIR:-../employee_service}/certs:/etc/nginx/certs:ro

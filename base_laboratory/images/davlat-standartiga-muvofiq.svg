@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" width="1000" height="500">
+  <g fill="#1565C8" font-family="Arial Narrow, Liberation Sans Narrow, Arial, Helvetica, sans-serif" font-weight="400" text-anchor="middle">
+    <text x="510" y="240" font-size="95" textLength="850" lengthAdjust="spacingAndGlyphs">DAVLAT STANDARTIGA</text>
+    <text x="530" y="370" font-size="95" textLength="360" lengthAdjust="spacingAndGlyphs">MUVOFIQ</text>
+  </g>
+  <line x1="70" y1="450" x2="980" y2="450" stroke="#1565C8" stroke-width="6"/>
+</svg>

@@ -1,0 +1,48 @@
+# Local development requirements (Python 3.14 compatible)
+# gevent/cffi/greenlet removed - not needed for Django dev server
+
+Django==4.2
+django-ckeditor==6.7.1
+django-cors-headers==4.4.0
+django-jazzmin==3.0.0
+django-js-asset==2.2.0
+django-simple-history
+djangorestframework==3.15.2
+dj-database-url
+python-dotenv
+drf_spectacular
+drf_spectacular_sidecar
+
+# Database
+psycopg2-binary
+
+# Data processing
+pandas
+openpyxl
+numpy>=2.1
+opencv-contrib-python-headless
+
+# Document & file processing
+pillow
+qrcode==8.0
+reportlab==4.2.5
+PyPDF2==3.0.1
+python-docx==1.1.2
+PyMuPDF==1.24.13
+lxml
+pypandoc==1.14
+
+# Utilities
+requests==2.32.3
+python-decouple==3.8
+transliterate
+getmac
+convertapi==2.0.0
+psutil==7.0.0
+websockets==13.1
+tqdm==4.66.6
+sqlparse==0.5.3
+tzdata==2024.2
+chardet==5.2.0
+certifi==2024.7.4
+urllib3==2.2.2

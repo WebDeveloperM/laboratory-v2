@@ -1,0 +1,522 @@
+{% extends 'base.html' %}
+
+{% block title %}Цеха и отделы - Сервис сотрудников{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <section class="panel-card rounded-[28px] p-6">
+        <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="font-display text-2xl font-bold text-slate-900">
+                    <i class="fas fa-industry mr-2 text-blue-600"></i>
+                    Цеха
+                </h2>
+                <p class="mt-1 text-sm text-slate-500">Управление цехами и корректный порядок сортировки.</p>
+            </div>
+            <button onclick="showDepartmentModal()" class="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700">
+                <i class="fas fa-plus"></i>
+                Добавить цех
+            </button>
+        </div>
+
+        <div class="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <input type="text" id="departmentSearchInput" placeholder="Поиск по цехам..." class="table-filter">
+            <button onclick="loadDepartments(1)" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50">
+                <i class="fas fa-search mr-2"></i>Поиск
+            </button>
+        </div>
+
+        <div class="overflow-x-auto rounded-[24px] border border-slate-200 bg-white">
+            <table class="min-w-full border-separate border-spacing-0">
+                <thead class="bg-slate-50 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                    <tr>
+                        <th class="px-5 py-4 text-left">Порядок</th>
+                        <th class="px-5 py-4 text-left">Название</th>
+                        <th class="px-5 py-4 text-left">Руководитель</th>
+                        <th class="px-5 py-4 text-right">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="departmentsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="departmentsLoading" class="hidden px-4 py-8 text-center text-sm text-slate-500">
+            <span class="loading"></span>
+            <span class="ml-2">Загрузка цехов...</span>
+        </div>
+        <div id="departmentsEmptyState" class="hidden rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">
+            Цеха не найдены.
+        </div>
+        <div id="departmentsPagination" class="mt-5"></div>
+    </section>
+
+    <section id="sections" class="panel-card rounded-[28px] p-6">
+        <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="font-display text-2xl font-bold text-slate-900">
+                    <i class="fas fa-diagram-project mr-2 text-emerald-600"></i>
+                    Отделы
+                </h2>
+                <p class="mt-1 text-sm text-slate-500">Выберите цех, чтобы увидеть связанные отделы и управлять ими.</p>
+            </div>
+            <button onclick="showSectionModal()" class="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700">
+                <i class="fas fa-plus"></i>
+                Добавить отдел
+            </button>
+        </div>
+
+        <div class="mb-5 grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)_auto]">
+            <select id="sectionDepartmentFilter" class="table-filter">
+                <option value="">Выберите цех</option>
+            </select>
+            <input type="text" id="sectionSearchInput" placeholder="Поиск по отделам..." class="table-filter">
+            <button onclick="loadSections(1)" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50">
+                <i class="fas fa-search mr-2"></i>Поиск
+            </button>
+        </div>
+
+        <div class="mb-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            <span id="selectedDepartmentCaption">Сначала выберите цех, затем появятся его отделы.</span>
+        </div>
+
+        <div class="overflow-x-auto rounded-[24px] border border-slate-200 bg-white">
+            <table class="min-w-full border-separate border-spacing-0">
+                <thead class="bg-slate-50 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                    <tr>
+                        <th class="px-5 py-4 text-left">Порядок</th>
+                        <th class="px-5 py-4 text-left">Отдел</th>
+                        <th class="px-5 py-4 text-left">Цех</th>
+                        <th class="px-5 py-4 text-right">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="sectionsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="sectionsLoading" class="hidden px-4 py-8 text-center text-sm text-slate-500">
+            <span class="loading"></span>
+            <span class="ml-2">Загрузка отделов...</span>
+        </div>
+        <div id="sectionsEmptyState" class="hidden rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">
+            Отделы не найдены.
+        </div>
+        <div id="sectionsPagination" class="mt-5"></div>
+    </section>
+</div>
+
+<div id="departmentModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/40 px-4 py-10">
+    <div class="mx-auto w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+        <div class="mb-5 flex items-center justify-between">
+            <h3 id="departmentModalTitle" class="font-display text-xl font-bold text-slate-900">Добавить цех</h3>
+            <button onclick="hideDepartmentModal()" class="icon-action"><i class="fas fa-xmark"></i></button>
+        </div>
+        <form id="departmentForm" onsubmit="saveDepartment(event)" class="space-y-4">
+            <input type="hidden" id="departmentId">
+            <div>
+                <label class="mb-2 block text-sm font-bold text-slate-700" for="departmentName">Название цеха</label>
+                <input type="text" id="departmentName" required class="table-filter">
+            </div>
+            <div>
+                <label class="mb-2 block text-sm font-bold text-slate-700" for="departmentBoss">Руководитель цеха</label>
+                <input type="text" id="departmentBoss" class="table-filter">
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="hideDepartmentModal()" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600">Отмена</button>
+                <button type="submit" id="departmentSaveButton" class="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="sectionModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/40 px-4 py-10">
+    <div class="mx-auto w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+        <div class="mb-5 flex items-center justify-between">
+            <h3 id="sectionModalTitle" class="font-display text-xl font-bold text-slate-900">Добавить отдел</h3>
+            <button onclick="hideSectionModal()" class="icon-action"><i class="fas fa-xmark"></i></button>
+        </div>
+        <form id="sectionForm" onsubmit="saveSection(event)" class="space-y-4">
+            <input type="hidden" id="sectionId">
+            <div>
+                <label class="mb-2 block text-sm font-bold text-slate-700" for="sectionDepartmentId">Цех</label>
+                <select id="sectionDepartmentId" required class="table-filter">
+                    <option value="">Выберите цех</option>
+                </select>
+            </div>
+            <div>
+                <label class="mb-2 block text-sm font-bold text-slate-700" for="sectionName">Название отдела</label>
+                <input type="text" id="sectionName" required class="table-filter">
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="hideSectionModal()" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600">Отмена</button>
+                <button type="submit" id="sectionSaveButton" class="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let departmentsCurrentPage = 1;
+    let sectionsCurrentPage = 1;
+    let departmentsCache = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('departmentSearchInput').addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                loadDepartments(1);
+            }
+        });
+
+        document.getElementById('sectionSearchInput').addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                loadSections(1);
+            }
+        });
+
+        document.getElementById('sectionDepartmentFilter').addEventListener('change', function () {
+            syncSectionDepartmentCaption();
+            loadSections(1);
+        });
+
+        loadDepartments(1, true);
+        if (window.location.hash === '#sections') {
+            document.getElementById('sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    function fillDepartmentSelectOptions(selectId, selectedValue = '') {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const firstOptionLabel = selectId === 'sectionDepartmentFilter' ? 'Выберите цех' : 'Выберите цех';
+        select.innerHTML = `<option value="">${firstOptionLabel}</option>`;
+
+        departmentsCache.forEach((department) => {
+            const option = document.createElement('option');
+            option.value = String(department.id);
+            option.textContent = `${department.sort_order || department.id}. ${department.name}`;
+            select.appendChild(option);
+        });
+
+        if (selectedValue) {
+            select.value = String(selectedValue);
+        }
+    }
+
+    function syncSectionDepartmentCaption() {
+        const selectedDepartmentId = document.getElementById('sectionDepartmentFilter').value;
+        const caption = document.getElementById('selectedDepartmentCaption');
+        const selectedDepartment = departmentsCache.find((department) => String(department.id) === String(selectedDepartmentId));
+
+        if (!selectedDepartmentId) {
+            caption.textContent = 'Сначала выберите цех, затем появятся его отделы.';
+            return;
+        }
+
+        caption.textContent = `Показаны отделы для цеха: ${selectedDepartment ? selectedDepartment.name : 'выбранный цех'}`;
+    }
+
+    async function loadDepartments(page = 1, refreshSections = false) {
+        departmentsCurrentPage = page;
+        const loading = document.getElementById('departmentsLoading');
+        const emptyState = document.getElementById('departmentsEmptyState');
+        const tableBody = document.getElementById('departmentsTableBody');
+
+        loading.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        tableBody.innerHTML = '';
+
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                search: document.getElementById('departmentSearchInput').value.trim(),
+            });
+            const response = await apiRequest(`/template/departments/?${params.toString()}`);
+            const departments = Array.isArray(response.data) ? response.data : [];
+
+            if (departments.length > 0) {
+                renderDepartments(departments);
+                renderPagination('departmentsPagination', response, departmentsCurrentPage, loadDepartments, 'blue');
+            } else {
+                emptyState.classList.remove('hidden');
+                document.getElementById('departmentsPagination').innerHTML = '';
+            }
+
+            if (page === 1 || departmentsCache.length === 0) {
+                const fullResponse = await apiRequest('/template/departments/?page_size=100');
+                departmentsCache = Array.isArray(fullResponse.data) ? fullResponse.data : departments;
+                const selectedDepartmentId = document.getElementById('sectionDepartmentFilter').value;
+                fillDepartmentSelectOptions('sectionDepartmentFilter', selectedDepartmentId);
+                fillDepartmentSelectOptions('sectionDepartmentId', document.getElementById('sectionDepartmentId').value);
+                syncSectionDepartmentCaption();
+                if (refreshSections) {
+                    loadSections(1);
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки цехов:', error);
+        } finally {
+            loading.classList.add('hidden');
+        }
+    }
+
+    function renderDepartments(departments) {
+        const tableBody = document.getElementById('departmentsTableBody');
+        tableBody.innerHTML = '';
+
+        departments.forEach((department) => {
+            const row = document.createElement('tr');
+            row.className = 'fade-in border-t border-slate-100 text-sm hover:bg-slate-50/80';
+            row.innerHTML = `
+                <td class="px-5 py-4 font-bold text-slate-900">${department.sort_order || '-'}</td>
+                <td class="px-5 py-4">
+                    <div class="font-semibold text-slate-900">${department.name}</div>
+                    <div class="text-xs text-slate-400">ID: ${department.id}</div>
+                </td>
+                <td class="px-5 py-4 text-slate-600">${department.boss_full_name || '-'}</td>
+                <td class="px-5 py-4 text-right">
+                    <div class="inline-flex items-center gap-2">
+                        <button type="button" onclick="editDepartment(${department.id})" class="icon-action" title="Редактировать цех">
+                            <i class="fas fa-pen-to-square"></i>
+                        </button>
+                        <button type="button" onclick="deleteDepartment(${department.id})" class="icon-action danger" title="Удалить цех">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    async function loadSections(page = 1) {
+        sectionsCurrentPage = page;
+        const loading = document.getElementById('sectionsLoading');
+        const emptyState = document.getElementById('sectionsEmptyState');
+        const tableBody = document.getElementById('sectionsTableBody');
+        const selectedDepartmentId = document.getElementById('sectionDepartmentFilter').value;
+
+        if (!selectedDepartmentId) {
+            tableBody.innerHTML = '';
+            loading.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            emptyState.textContent = 'Выберите цех, чтобы увидеть его отделы.';
+            document.getElementById('sectionsPagination').innerHTML = '';
+            return;
+        }
+
+        loading.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        tableBody.innerHTML = '';
+
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                search: document.getElementById('sectionSearchInput').value.trim(),
+            });
+
+            if (selectedDepartmentId) {
+                params.append('department_id', selectedDepartmentId);
+            }
+
+            const response = await apiRequest(`/template/sections/?${params.toString()}`);
+            const sections = Array.isArray(response.data) ? response.data : [];
+
+            if (sections.length > 0) {
+                renderSections(sections);
+                renderPagination('sectionsPagination', response, sectionsCurrentPage, loadSections, 'emerald');
+            } else {
+                emptyState.classList.remove('hidden');
+                emptyState.textContent = 'У выбранного цеха отделы не найдены.';
+                document.getElementById('sectionsPagination').innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки отделов:', error);
+        } finally {
+            loading.classList.add('hidden');
+        }
+    }
+
+    function renderSections(sections) {
+        const tableBody = document.getElementById('sectionsTableBody');
+        const pageOffset = (sectionsCurrentPage - 1) * 20;
+        tableBody.innerHTML = '';
+
+        sections.forEach((section, index) => {
+            const row = document.createElement('tr');
+            row.className = 'fade-in border-t border-slate-100 text-sm hover:bg-slate-50/80';
+            row.innerHTML = `
+                <td class="px-5 py-4 text-slate-500">${pageOffset + index + 1}</td>
+                <td class="px-5 py-4 font-semibold text-slate-900">${section.name}</td>
+                <td class="px-5 py-4 text-slate-600">${section.department ? section.department.name : '-'}</td>
+                <td class="px-5 py-4 text-right">
+                    <div class="inline-flex items-center gap-2">
+                        <button type="button" onclick="editSection(${section.id})" class="icon-action" title="Редактировать отдел">
+                            <i class="fas fa-pen-to-square"></i>
+                        </button>
+                        <button type="button" onclick="deleteSection(${section.id})" class="icon-action danger" title="Удалить отдел">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function renderPagination(containerId, response, currentPage, loader, theme) {
+        const pagination = document.getElementById(containerId);
+        const totalCount = Number(response.count || 0);
+        if (!totalCount || totalCount <= 20) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(totalCount / 20);
+        const activeClass = theme === 'emerald' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-blue-600 bg-blue-600 text-white';
+        let html = '<div class="flex flex-wrap items-center justify-center gap-2">';
+
+        html += `<button onclick="${loader.name}(${Math.max(1, currentPage - 1)})" class="h-11 min-w-[44px] rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-angle-left"></i></button>`;
+
+        for (let page = 1; page <= Math.min(totalPages, 5); page++) {
+            html += `<button onclick="${loader.name}(${page})" class="h-11 min-w-[44px] rounded-2xl border px-4 text-sm font-bold ${page === currentPage ? activeClass : 'border-slate-200 bg-white text-slate-600'}">${page}</button>`;
+        }
+
+        html += `<button onclick="${loader.name}(${Math.min(totalPages, currentPage + 1)})" class="h-11 min-w-[44px] rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-angle-right"></i></button>`;
+        html += '</div>';
+        pagination.innerHTML = html;
+    }
+
+    function showDepartmentModal() {
+        document.getElementById('departmentModalTitle').textContent = 'Добавить цех';
+        document.getElementById('departmentForm').reset();
+        document.getElementById('departmentId').value = '';
+        document.getElementById('departmentModal').classList.remove('hidden');
+    }
+
+    function hideDepartmentModal() {
+        document.getElementById('departmentModal').classList.add('hidden');
+        document.getElementById('departmentForm').reset();
+    }
+
+    async function editDepartment(id) {
+        try {
+            const response = await apiRequest(`/template/departments/${id}/`);
+            const department = response.data;
+            document.getElementById('departmentModalTitle').textContent = 'Редактировать цех';
+            document.getElementById('departmentId').value = department.id;
+            document.getElementById('departmentName').value = department.name;
+            document.getElementById('departmentBoss').value = department.boss_full_name || '';
+            document.getElementById('departmentModal').classList.remove('hidden');
+        } catch (error) {
+            console.error('Ошибка загрузки цеха:', error);
+        }
+    }
+
+    async function saveDepartment(event) {
+        event.preventDefault();
+        const button = document.getElementById('departmentSaveButton');
+        const departmentId = document.getElementById('departmentId').value;
+        const formData = {
+            name: document.getElementById('departmentName').value,
+            boss_full_name: document.getElementById('departmentBoss').value,
+        };
+
+        setLoading(button, true);
+        try {
+            if (departmentId) {
+                await apiRequest(`/template/departments/${departmentId}/`, { method: 'PUT', body: JSON.stringify(formData) });
+                showToast('Цех успешно обновлён');
+            } else {
+                await apiRequest('/template/departments/', { method: 'POST', body: JSON.stringify(formData) });
+                showToast('Цех успешно создан');
+            }
+            hideDepartmentModal();
+            await loadDepartments(departmentsCurrentPage, true);
+        } catch (error) {
+            console.error('Ошибка сохранения цеха:', error);
+        } finally {
+            setLoading(button, false);
+        }
+    }
+
+    async function deleteDepartment(id) {
+        if (!confirmAction('Вы уверены, что хотите удалить этот цех?')) {
+            return;
+        }
+        try {
+            await apiRequest(`/template/departments/${id}/`, { method: 'DELETE' });
+            showToast('Цех успешно удалён');
+            await loadDepartments(departmentsCurrentPage, true);
+        } catch (error) {
+            console.error('Ошибка удаления цеха:', error);
+        }
+    }
+
+    function showSectionModal() {
+        document.getElementById('sectionModalTitle').textContent = 'Добавить отдел';
+        document.getElementById('sectionForm').reset();
+        document.getElementById('sectionId').value = '';
+        fillDepartmentSelectOptions('sectionDepartmentId', document.getElementById('sectionDepartmentFilter').value);
+        document.getElementById('sectionModal').classList.remove('hidden');
+    }
+
+    function hideSectionModal() {
+        document.getElementById('sectionModal').classList.add('hidden');
+        document.getElementById('sectionForm').reset();
+    }
+
+    async function editSection(id) {
+        try {
+            const response = await apiRequest(`/template/sections/${id}/`);
+            const section = response.data;
+            document.getElementById('sectionModalTitle').textContent = 'Редактировать отдел';
+            document.getElementById('sectionId').value = section.id;
+            document.getElementById('sectionName').value = section.name;
+            fillDepartmentSelectOptions('sectionDepartmentId', section.department ? section.department.id : '');
+            document.getElementById('sectionModal').classList.remove('hidden');
+        } catch (error) {
+            console.error('Ошибка загрузки отдела:', error);
+        }
+    }
+
+    async function saveSection(event) {
+        event.preventDefault();
+        const button = document.getElementById('sectionSaveButton');
+        const sectionId = document.getElementById('sectionId').value;
+        const formData = {
+            name: document.getElementById('sectionName').value,
+            department_id: Number(document.getElementById('sectionDepartmentId').value),
+        };
+
+        setLoading(button, true);
+        try {
+            if (sectionId) {
+                await apiRequest(`/template/sections/${sectionId}/`, { method: 'PUT', body: JSON.stringify(formData) });
+                showToast('Отдел успешно обновлён');
+            } else {
+                await apiRequest('/template/sections/', { method: 'POST', body: JSON.stringify(formData) });
+                showToast('Отдел успешно создан');
+            }
+            hideSectionModal();
+            await loadSections(sectionsCurrentPage);
+        } catch (error) {
+            console.error('Ошибка сохранения отдела:', error);
+        } finally {
+            setLoading(button, false);
+        }
+    }
+
+    async function deleteSection(id) {
+        if (!confirmAction('Вы уверены, что хотите удалить этот отдел?')) {
+            return;
+        }
+        try {
+            await apiRequest(`/template/sections/${id}/`, { method: 'DELETE' });
+            showToast('Отдел успешно удалён');
+            await loadSections(sectionsCurrentPage);
+        } catch (error) {
+            console.error('Ошибка удаления отдела:', error);
+        }
+    }
+</script>
+{% endblock %}

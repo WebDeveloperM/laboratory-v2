@@ -1,0 +1,18 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laboratory_frontend_https
+    ports:
+      - "6060:443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    driver: bridge

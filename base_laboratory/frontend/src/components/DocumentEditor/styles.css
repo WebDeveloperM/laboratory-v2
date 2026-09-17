@@ -1,0 +1,87 @@
+/* Document Editor — Word-like layout */
+
+.doc-editor-wrap {
+  border: 1px solid #d0d5dd;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toolbar */
+.doc-editor-toolbar {
+  background: #f3f4f6;
+  border-bottom: 1px solid #d0d5dd;
+  padding: 4px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.doc-editor-toolbar .ck.ck-toolbar {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  flex-wrap: wrap;
+}
+
+.doc-editor-toolbar .ck.ck-toolbar .ck-toolbar__items {
+  flex-wrap: wrap;
+}
+
+/* Dark "desktop" behind the page */
+.doc-editor-container {
+  background: #525659;
+  padding: 32px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The editable page itself is styled inline in onReady,
+   but we also override CKEditor defaults here */
+.doc-editor-container .ck.ck-editor__editable {
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.45) !important;
+  max-width: 794px;
+  min-height: 1123px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 72px 90px !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 12pt !important;
+  line-height: 1.5 !important;
+  color: #000 !important;
+  border-radius: 0 !important;
+}
+
+.doc-editor-container .ck.ck-editor__editable:focus {
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.45) !important;
+  outline: none !important;
+}
+
+/* Tables in editor */
+.doc-editor-container .ck-content table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.doc-editor-container .ck-content td,
+.doc-editor-container .ck-content th {
+  border: 1px solid #999;
+  padding: 3px 6px;
+}
+
+/* Scrollbar */
+.doc-editor-container::-webkit-scrollbar {
+  width: 8px;
+}
+.doc-editor-container::-webkit-scrollbar-track {
+  background: #3d3f41;
+}
+.doc-editor-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}

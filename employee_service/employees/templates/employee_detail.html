@@ -1,0 +1,1122 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if page_mode == 'edit' %}Редактировать сотрудника{% else %}Просмотр сотрудника{% endif %} - Сервис сотрудников{% endblock %}
+
+{% block content %}
+<section class="space-y-6">
+    <div class="panel-card rounded-[28px] p-6 lg:p-8">
+        <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+                <p class="mb-2 text-sm font-bold uppercase tracking-[0.22em] text-slate-400">Карточка сотрудника</p>
+                <h2 class="font-display text-3xl font-bold text-slate-900">
+                    {% if page_mode == 'edit' %}Редактировать сотрудника{% else %}Просмотр сотрудника{% endif %}
+                </h2>
+                <p class="mt-2 text-sm text-slate-500">{{ employee }}</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a href="/"
+                    class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                    <i class="fas fa-arrow-left"></i>
+                    К списку
+                </a>
+                {% if page_mode == 'view' and request.user.profile.role != 'user' %}
+                <a href="/employees/{{ employee.slug }}/edit/"
+                    class="inline-flex items-center gap-2 rounded-2xl bg-[var(--info)] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20">
+                    <i class="fas fa-pen"></i>
+                    Редактировать
+                </a>
+                <a href="/employees/{{ employee.slug }}/delete/"
+                    class="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-600">
+                    <i class="fas fa-trash"></i>
+                    Удалить
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <form id="employeePageForm" onsubmit="saveEmployeePage(event)" class="space-y-6">
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <div class="panel-card rounded-[28px] p-6">
+                <div class="mb-5 flex items-start gap-4">
+                    {% if employee.base_image %}
+                    <img src="{{ employee.base_image.url }}" alt="{{ employee }}"
+                        class="h-20 w-20 rounded-[24px] object-cover shadow-sm">
+                    {% else %}
+                    <div class="flex h-20 w-20 items-center justify-center rounded-[24px] bg-slate-100 text-2xl text-slate-400">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h3 class="font-display text-xl font-bold text-slate-900">Личные данные</h3>
+                        <p class="mt-1 text-sm text-slate-500">Основная информация и фотография сотрудника.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Имя</label>
+                        <input type="text" id="first_name" value="{{ employee.first_name|default_if_none:'' }}" required class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Фамилия</label>
+                        <input type="text" id="last_name" value="{{ employee.last_name|default_if_none:'' }}" required class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Отчество</label>
+                        <input type="text" id="surname" value="{{ employee.surname|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Табельный номер</label>
+                        <input type="text" id="tabel_number" value="{{ employee.tabel_number|default_if_none:'' }}" required class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Пол</label>
+                        <select id="gender" class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                            <option value="" {% if not employee.gender %}selected{% endif %}>Выберите</option>
+                            <option value="M" {% if employee.gender == 'M' %}selected{% endif %}>Мужской</option>
+                            <option value="F" {% if employee.gender == 'F' %}selected{% endif %}>Женский</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Дата рождения</label>
+                        <input type="text" id="date_of_birth" value="{{ employee.date_of_birth|date:'d/m/Y'|default_if_none:'' }}" class="table-filter" placeholder="dd/mm/yyyy" inputmode="numeric" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Телефон 1</label>
+                        <input type="tel" id="phone_number_1" value="{{ employee.phone_number_1|default_if_none:'' }}" class="table-filter" placeholder="+998 00 000 00 00" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Телефон 2</label>
+                        <input type="tel" id="phone_number_2" value="{{ employee.phone_number_2|default_if_none:'' }}" class="table-filter" placeholder="+998 XX XXX XX XX" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                </div>
+                {% if page_mode == 'edit' %}
+                <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+                    <h4 class="mb-2 text-sm font-bold uppercase tracking-wider text-slate-700"><i class="fas fa-image mr-2 text-[var(--info)]"></i>Фотография</h4>
+                    <p class="text-sm text-slate-500">Загрузите новый файл или сделайте снимок. Изображение обновится после нажатия кнопки Сохранить.</p>
+
+                    <div class="mt-4 flex items-start gap-4">
+                        <div id="photoPreviewWrapper" class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                            {% if employee.base_image %}
+                            <img id="photoPreviewImage" src="{{ employee.base_image.url }}" alt="Фото сотрудника" class="h-full w-full object-cover">
+                            {% else %}
+                            <div id="photoPreviewPlaceholder" class="flex h-full w-full items-center justify-center text-2xl text-slate-300">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <img id="photoPreviewImage" src="" alt="Фото сотрудника" class="hidden h-full w-full object-cover">
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 space-y-3">
+                            <input type="file" id="base_image" accept="image/*" class="table-filter w-full">
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="openCameraSession('photo')" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200">
+                                    <i class="fas fa-camera mr-2"></i>Снять фото
+                                </button>
+                                <button type="button" onclick="clearPendingEmployeeImage()" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
+                                    Убрать новое фото
+                                </button>
+                            </div>
+                            <p id="photoChangeHint" class="text-xs text-slate-500">
+                                {% if employee.base_image %}Сейчас используется текущее фото сотрудника.{% else %}Фото пока не загружено.{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+               
+                {% endif %}
+                <!-- <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Фотография</label>
+                        <div class="flex items-center gap-3">
+                            <input type="file" id="base_image" accept="image/*" class="table-filter flex-1" {% if page_mode == 'view' %}disabled{% endif %}>
+                            {% if page_mode == 'edit' %}
+                            <button type="button" onclick="openCamera()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200" title="Камерадан суратга олиш">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% if employee.base_image %}
+                        <p class="mt-2 text-xs text-slate-500">Текущее фото сохранено. Новый файл заменит существующий.</p>
+                        {% endif %}
+                        <div id="cameraContainer" class="mt-3 hidden">
+                            <video id="cameraVideo" autoplay playsinline class="w-full rounded-xl border border-slate-200"></video>
+                            <div class="mt-2 flex gap-2">
+                                <button type="button" onclick="capturePhoto()" class="rounded-xl bg-[var(--info)] px-4 py-2 text-sm font-bold text-white"><i class="fas fa-camera"></i> Снять</button>
+                                <button type="button" onclick="closeCamera()" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600">Отмена</button>
+                            </div>
+                        </div>
+                        <canvas id="cameraCanvas" class="hidden"></canvas>
+                        <div id="capturedPreview" class="mt-3 hidden">
+                            <img id="capturedImage" class="h-32 w-32 rounded-xl object-cover border border-slate-200">
+                            <button type="button" onclick="removeCapturedPhoto()" class="mt-1 text-xs text-red-500 hover:underline">Удалить снимок</button>
+                        </div>
+                    </div>
+                </div> -->
+            </div>
+
+            <div class="panel-card rounded-[28px] p-6">
+                <h3 class="font-display text-xl font-bold text-slate-900">Работа</h3>
+                <p class="mt-1 text-sm text-slate-500">Подразделение, должность и статус сотрудника.</p>
+
+                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div class="md:col-span-2">
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Должность</label>
+                        <input type="text" id="position" value="{{ employee.position|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <label class="block text-sm font-bold text-slate-700">Цех</label>
+                            {% if page_mode == 'edit' and not can_edit_sizes_only %}
+                            <button type="button" id="openDepartmentInlineModalButton" onclick="openInlineOrgModal('department')"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-[var(--info)] transition hover:border-blue-300 hover:bg-blue-100"
+                                title="Добавить цех" aria-label="Добавить цех">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        <select id="department_id" class="table-filter" onchange="refreshSectionOptions(); syncClotheSizeVisibility()" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                            <option value="">Выберите цех</option>
+                            {% for department in departments %}
+                            <option value="{{ department.id }}" data-boss-full-name="{{ department.boss_full_name|default_if_none:'' }}" data-sort-order="{{ department.sort_order }}" {% if employee.department_id == department.id %}selected{% endif %}>{{ department.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <label class="block text-sm font-bold text-slate-700">Отдел</label>
+                            {% if page_mode == 'edit' and not can_edit_sizes_only %}
+                            <button type="button" id="openSectionInlineModalButton" onclick="openInlineOrgModal('section')"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100"
+                                title="Добавить отдел" aria-label="Добавить отдел">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        <select id="section_id" class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                            <option value="">Выберите отдел</option>
+                            {% for section in sections %}
+                            <option value="{{ section.id }}" data-department-id="{{ section.department_id }}" {% if employee.section_id == section.id %}selected{% endif %}>{{ section.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Руководитель цеха</label>
+                        <input type="text" id="boss_full_name" value="{{ employee.department.boss_full_name|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Дата приёма на работу</label>
+                        <input type="text" id="date_of_employment" value="{{ employee.date_of_employment|date:'d/m/Y' }}" class="table-filter" placeholder="dd/mm/yyyy" inputmode="numeric" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Статус</label>
+                        <select id="is_active" class="table-filter" {% if page_mode == 'view' or can_edit_sizes_only %}disabled{% endif %}>
+                            <option value="true" {% if employee.is_active %}selected{% endif %}>Активный</option>
+                            <option value="false" {% if not employee.is_active %}selected{% endif %}>Неактивный</option>
+                        </select>
+                    </div>
+                    <!-- <div class="md:col-span-2">
+                        <label class="mb-2 block text-sm font-bold text-slate-700">Требуется проверка по лицу</label>
+                        <select id="requires_face_id_checkout" class="table-filter" {% if page_mode == 'view' %}disabled{% endif %}>
+                            <option value="true" {% if employee.requires_face_id_checkout %}selected{% endif %}>Да</option>
+                            <option value="false" {% if not employee.requires_face_id_checkout %}selected{% endif %}>Нет</option>
+                        </select>
+                    </div> -->
+
+                </div>
+
+                {% if request.user.profile.role != 'user' %}
+                <div class="mt-6 rounded-2xl border border-blue-200 bg-blue-50/30 p-5">
+                    <h4 class="mb-4 text-sm font-bold uppercase tracking-wider text-blue-600"><i class="fas fa-key mr-2"></i>Учётные данные</h4>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Логин</label>
+                            <input type="text" id="login" value="{{ employee.login|default_if_none:'' }}" class="table-filter" placeholder="Введите логин" {% if page_mode == 'view' %}disabled{% endif %}>
+                        </div>
+                        {% if page_mode == 'edit' %}
+                        <div>
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Пароль</label>
+                            <input type="password" id="password" class="table-filter" placeholder="Новый пароль">
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Пароль (повтор)</label>
+                            <input type="password" id="password_confirm" class="table-filter" placeholder="Повторите пароль">
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+             
+                {% endif %}
+
+                {% if request.user.profile.role == 'user' %}
+                <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50/30 p-5">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h4 class="text-sm font-bold uppercase tracking-wider text-slate-700">Размеры</h4>
+                            <p class="mt-1 text-sm text-slate-500">
+                                {% if can_edit_sizes_only %}Обычный сотрудник может изменять только этот раздел.{% else %}Служебные размеры для одежды и СИЗ.{% endif %}
+                            </p>
+                        </div>
+                        {% if can_edit_sizes_only %}
+                        <button type="button" onclick="openSizeEditModal()" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-[var(--info)] shadow-sm transition hover:border-blue-200 hover:bg-blue-50" title="Редактировать размеры" aria-label="Редактировать размеры">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Спецодежда</label>
+                            <input type="text" id="special_clothing_size" value="{{ employee.special_clothing_size|default_if_none:'' }}" class="table-filter" disabled>
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Обувь</label>
+                            <input type="text" id="shoe_size" value="{{ employee.shoe_size|default_if_none:'' }}" class="table-filter" disabled>
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Куртка</label>
+                            <input type="text" id="jacket_size" value="{{ employee.jacket_size|default_if_none:'' }}" class="table-filter" disabled>
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Футболка</label>
+                            <input type="text" id="tshirt_size" value="{{ employee.tshirt_size|default_if_none:'' }}" class="table-filter" disabled>
+                        </div>
+                        <div id="clotheSizeFieldUser" class="{% if employee.department and employee.department.sort_order == 11 or employee.department.sort_order == 13 or employee.department.sort_order == 24 %}{% else %}hidden{% endif %}">
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Халат</label>
+                            <input type="text" id="clothe_size" value="{{ employee.clothe_size|default_if_none:'' }}" class="table-filter" disabled>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if request.user.profile.role != 'user' %}
+        <div class="panel-card rounded-[28px] p-6">
+            <h3 class="font-display text-xl font-bold text-slate-900">Размеры</h3>
+            <p class="mt-1 text-sm text-slate-500">Служебные размеры для одежды и СИЗ.</p>
+
+            <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700">Спецодежда</label>
+                    <input type="text" id="special_clothing_size" value="{{ employee.special_clothing_size|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' %}disabled{% endif %}>
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700">Обувь</label>
+                    <input type="text" id="shoe_size" value="{{ employee.shoe_size|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' %}disabled{% endif %}>
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700">Куртка</label>
+                    <input type="text" id="jacket_size" value="{{ employee.jacket_size|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' %}disabled{% endif %}>
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700">Футболка</label>
+                    <input type="text" id="tshirt_size" value="{{ employee.tshirt_size|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' %}disabled{% endif %}>
+                </div>
+                <div id="clotheSizeFieldAdmin" class="{% if employee.department and employee.department.sort_order == 11 or employee.department.sort_order == 13 or employee.department.sort_order == 24 %}{% else %}hidden{% endif %}">
+                    <label class="mb-2 block text-sm font-bold text-slate-700">Халат</label>
+                    <input type="text" id="clothe_size_admin" value="{{ employee.clothe_size|default_if_none:'' }}" class="table-filter" {% if page_mode == 'view' %}disabled{% endif %}>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="flex flex-wrap justify-end gap-3">
+            {% if page_mode == 'edit' %}
+            <a href="/employees/{{ employee.slug }}/"
+                class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700">Отмена</a>
+            <button type="submit" id="saveButton"
+                class="rounded-2xl bg-[var(--info)] px-5 py-3 text-sm font-bold text-white">Сохранить</button>
+            {% elif request.user.profile.role != 'user' %}
+            <a href="/employees/{{ employee.slug }}/edit/"
+                class="rounded-2xl bg-[var(--info)] px-5 py-3 text-sm font-bold text-white">Редактировать</a>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if page_mode == 'edit' %}
+    <div id="cameraModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 px-4">
+        <div class="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-2xl">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 id="cameraModalTitle" class="font-display text-2xl font-bold text-slate-900">Съёмка</h3>
+                    <p id="cameraModalHint" class="mt-1 text-sm text-slate-500">Разрешите доступ к камере и сделайте снимок.</p>
+                </div>
+                <button type="button" onclick="closeCameraSession()" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-500 hover:bg-slate-50">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+                <video id="cameraVideo" autoplay playsinline class="aspect-video w-full object-cover"></video>
+            </div>
+            <canvas id="cameraCanvas" class="hidden"></canvas>
+
+            <div class="mt-5 flex flex-wrap justify-end gap-3">
+                <button type="button" onclick="closeCameraSession()" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Отмена</button>
+                <button type="button" id="cameraCaptureButton" onclick="captureCameraFrame()" class="rounded-xl bg-[var(--info)] px-4 py-2 text-sm font-bold text-white">
+                    <i class="fas fa-camera mr-2"></i>Снять
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="inlineDepartmentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 px-4">
+        <div class="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 class="font-display text-2xl font-bold text-slate-900">Добавить цех</h3>
+                    <p class="mt-1 text-sm text-slate-500">Создайте новый цех, не закрывая редактирование сотрудника.</p>
+                </div>
+                <button type="button" onclick="closeInlineOrgModal('department')" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-500 hover:bg-slate-50">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form class="mt-5 space-y-4" onsubmit="saveInlineDepartment(event)">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="inlineDepartmentName">Название цеха</label>
+                    <input type="text" id="inlineDepartmentName" required class="table-filter" placeholder="Например, 1-Цех. Технология">
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="inlineDepartmentBoss">Руководитель цеха</label>
+                    <input type="text" id="inlineDepartmentBoss" class="table-filter" placeholder="Ф.И.О. руководителя">
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeInlineOrgModal('department')" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Отмена</button>
+                    <button type="submit" id="inlineDepartmentSaveButton" class="rounded-xl bg-[var(--info)] px-4 py-2 text-sm font-bold text-white">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="inlineSectionModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 px-4">
+        <div class="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 class="font-display text-2xl font-bold text-slate-900">Добавить отдел</h3>
+                    <p class="mt-1 text-sm text-slate-500">Создайте новый отдел и сразу привяжите его к сотруднику.</p>
+                </div>
+                <button type="button" onclick="closeInlineOrgModal('section')" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-500 hover:bg-slate-50">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form class="mt-5 space-y-4" onsubmit="saveInlineSection(event)">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="inlineSectionName">Название отдела</label>
+                    <input type="text" id="inlineSectionName" required class="table-filter" placeholder="Например, Смена A">
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="inlineSectionDepartment">Цех</label>
+                    <select id="inlineSectionDepartment" required class="table-filter">
+                        <option value="">Выберите цех</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeInlineOrgModal('section')" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Отмена</button>
+                    <button type="submit" id="inlineSectionSaveButton" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if can_edit_sizes_only %}
+    <div id="sizeEditModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 px-4">
+        <div class="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 class="font-display text-2xl font-bold text-slate-900">Редактировать размеры</h3>
+                    <p class="mt-1 text-sm text-slate-500">Измените нужные значения и сохраните их отдельно.</p>
+                </div>
+                <button type="button" onclick="closeSizeEditModal()" class="rounded-xl border border-slate-200 px-3 py-2 text-slate-500 hover:bg-slate-50">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="sizeModalSpecialClothing">Спецодежда</label>
+                    <input type="text" id="sizeModalSpecialClothing" class="table-filter" value="{{ employee.special_clothing_size|default_if_none:'' }}">
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="sizeModalShoe">Обувь</label>
+                    <input type="text" id="sizeModalShoe" class="table-filter" value="{{ employee.shoe_size|default_if_none:'' }}">
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="sizeModalJacket">Куртка</label>
+                    <input type="text" id="sizeModalJacket" class="table-filter" value="{{ employee.jacket_size|default_if_none:'' }}">
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="sizeModalTshirt">Футболка</label>
+                    <input type="text" id="sizeModalTshirt" class="table-filter" value="{{ employee.tshirt_size|default_if_none:'' }}">
+                </div>
+                <div id="clotheSizeModalField" class="{% if employee.department and employee.department.sort_order == 11 or employee.department.sort_order == 13 or employee.department.sort_order == 24 %}{% else %}hidden{% endif %}">
+                    <label class="mb-2 block text-sm font-bold text-slate-700" for="sizeModalClothe">Халат</label>
+                    <input type="text" id="sizeModalClothe" class="table-filter" value="{{ employee.clothe_size|default_if_none:'' }}">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeSizeEditModal()" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Отмена</button>
+                <button type="button" id="sizeModalSaveButton" onclick="saveSizeModal()" class="rounded-xl bg-[var(--info)] px-4 py-2 text-sm font-bold text-white">Сохранить</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+<script>
+    const employeeSlug = '{{ employee.slug }}';
+    const pageMode = '{{ page_mode }}';
+    const canEditSizesOnly = '{{ can_edit_sizes_only|default_if_none:False|yesno:"true,false" }}' === 'true';
+    const currentEmployeeImageUrl = '{% if employee.base_image %}{{ employee.base_image.url }}{% endif %}';
+    const clotheSizeDepartmentSortOrders = new Set(['11', '13', '24']);
+
+    document.addEventListener('DOMContentLoaded', function () {
+        refreshSectionOptions('{{ employee.section_id|default_if_none:"" }}');
+        if (pageMode === 'edit') {
+            syncInlineDepartmentSelect('{{ employee.department_id|default_if_none:"" }}');
+        }
+        syncClotheSizeVisibility();
+
+        const passwordField = document.getElementById('password');
+        const passwordConfirmField = document.getElementById('password_confirm');
+        if (passwordField) {
+            passwordField.value = '';
+        }
+        if (passwordConfirmField) {
+            passwordConfirmField.value = '';
+        }
+
+        IMask(document.getElementById('phone_number_1'), { mask: '+{998} 00 000 00 00' });
+        IMask(document.getElementById('phone_number_2'), { mask: '+{998} 00 000 00 00' });
+        IMask(document.getElementById('date_of_birth'), { mask: '00/00/0000' });
+        IMask(document.getElementById('date_of_employment'), { mask: '00/00/0000' });
+
+        if (pageMode === 'edit') {
+            const baseImageField = document.getElementById('base_image');
+            if (baseImageField) {
+                baseImageField.addEventListener('change', handleEmployeePhotoSelection);
+            }
+        }
+    });
+
+    function shouldShowClotheSizeField() {
+        const departmentSelect = document.getElementById('department_id');
+        const selectedOption = departmentSelect ? departmentSelect.options[departmentSelect.selectedIndex] : null;
+        return clotheSizeDepartmentSortOrders.has(String(selectedOption?.dataset?.sortOrder || ''));
+    }
+
+    function syncClotheSizeVisibility() {
+        const shouldShow = shouldShowClotheSizeField();
+        ['clotheSizeFieldUser', 'clotheSizeFieldAdmin', 'clotheSizeModalField'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.classList.toggle('hidden', !shouldShow);
+            }
+        });
+
+        if (!shouldShow) {
+            ['clothe_size', 'clothe_size_admin', 'sizeModalClothe'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = '';
+                }
+            });
+        }
+    }
+
+    function refreshSectionOptions(selectedId = '') {
+        const departmentSelect = document.getElementById('department_id');
+        const sectionSelect = document.getElementById('section_id');
+        const bossField = document.getElementById('boss_full_name');
+
+        if (!departmentSelect || !sectionSelect || !bossField) {
+            return;
+        }
+
+        const departmentId = departmentSelect.value;
+        const selectedDepartmentOption = departmentSelect.options[departmentSelect.selectedIndex];
+        bossField.value = departmentId ? (selectedDepartmentOption?.dataset?.bossFullName || '') : '';
+
+        // Store all sections on first call
+        if (!window._allSectionOptions) {
+            window._allSectionOptions = Array.from(sectionSelect.querySelectorAll('option[data-department-id]')).map(opt => ({
+                value: opt.value,
+                text: opt.textContent,
+                departmentId: opt.dataset.departmentId,
+            }));
+        }
+
+        // Rebuild options filtered by department
+        sectionSelect.innerHTML = '<option value="">Выберите отдел</option>';
+        window._allSectionOptions.forEach(opt => {
+            if (!departmentId || opt.departmentId === String(departmentId)) {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text;
+                option.dataset.departmentId = opt.departmentId;
+                sectionSelect.appendChild(option);
+            }
+        });
+
+        if (selectedId) {
+            sectionSelect.value = String(selectedId);
+        }
+    }
+
+    function openInlineOrgModal(type) {
+        if (pageMode !== 'edit' || canEditSizesOnly) {
+            return;
+        }
+
+        if (type === 'section') {
+            syncInlineDepartmentSelect(document.getElementById('department_id').value);
+        }
+
+        const modal = document.getElementById(type === 'department' ? 'inlineDepartmentModal' : 'inlineSectionModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const firstField = type === 'department'
+            ? document.getElementById('inlineDepartmentName')
+            : document.getElementById('inlineSectionName');
+        if (firstField) {
+            window.setTimeout(() => firstField.focus(), 0);
+        }
+    }
+
+    function closeInlineOrgModal(type) {
+        const modal = document.getElementById(type === 'department' ? 'inlineDepartmentModal' : 'inlineSectionModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+
+        if (type === 'department') {
+            document.getElementById('inlineDepartmentName').value = '';
+            document.getElementById('inlineDepartmentBoss').value = '';
+        } else {
+            document.getElementById('inlineSectionName').value = '';
+        }
+    }
+
+    function syncInlineDepartmentSelect(selectedDepartmentId = '') {
+        const departmentSelect = document.getElementById('department_id');
+        const modalDepartmentSelect = document.getElementById('inlineSectionDepartment');
+        if (!departmentSelect || !modalDepartmentSelect) {
+            return;
+        }
+
+        const currentValue = String(selectedDepartmentId || modalDepartmentSelect.value || departmentSelect.value || '');
+        modalDepartmentSelect.innerHTML = '<option value="">Выберите цех</option>';
+
+        Array.from(departmentSelect.querySelectorAll('option[value]:not([value=""])')).forEach(option => {
+            const modalOption = document.createElement('option');
+            modalOption.value = option.value;
+            modalOption.textContent = option.textContent;
+            modalDepartmentSelect.appendChild(modalOption);
+        });
+
+        if (currentValue) {
+            modalDepartmentSelect.value = currentValue;
+        }
+    }
+
+    function appendDepartmentOption(department, selected = false) {
+        const departmentSelect = document.getElementById('department_id');
+        if (!departmentSelect) {
+            return;
+        }
+
+        const existingOption = Array.from(departmentSelect.options).find(option => option.value === String(department.id));
+        if (existingOption) {
+            existingOption.textContent = department.name;
+            existingOption.dataset.bossFullName = department.boss_full_name || '';
+            if (selected) {
+                departmentSelect.value = String(department.id);
+            }
+            syncInlineDepartmentSelect(department.id);
+            refreshSectionOptions();
+            syncClotheSizeVisibility();
+            return;
+        }
+
+        const option = document.createElement('option');
+        option.value = department.id;
+        option.textContent = department.name;
+        option.dataset.bossFullName = department.boss_full_name || '';
+        departmentSelect.appendChild(option);
+        departmentSelect.value = String(department.id);
+        syncInlineDepartmentSelect(department.id);
+        refreshSectionOptions();
+        syncClotheSizeVisibility();
+    }
+
+    function appendSectionOption(section, selected = false) {
+        const sectionSelect = document.getElementById('section_id');
+        if (!sectionSelect) {
+            return;
+        }
+
+        if (!window._allSectionOptions) {
+            window._allSectionOptions = [];
+        }
+
+        const normalizedSection = {
+            value: String(section.id),
+            text: section.name,
+            departmentId: String(section.department?.id || section.department_id || ''),
+        };
+
+        const existingIndex = window._allSectionOptions.findIndex(option => option.value === normalizedSection.value);
+        if (existingIndex >= 0) {
+            window._allSectionOptions[existingIndex] = normalizedSection;
+        } else {
+            window._allSectionOptions.push(normalizedSection);
+        }
+
+        refreshSectionOptions(selected ? normalizedSection.value : '');
+        if (selected) {
+            sectionSelect.value = normalizedSection.value;
+        }
+    }
+
+    async function saveInlineDepartment(event) {
+        event.preventDefault();
+
+        const saveButton = document.getElementById('inlineDepartmentSaveButton');
+        setLoading(saveButton, true, 'Сохранение...');
+
+        try {
+            const response = await fetch(`${API_BASE}/template/departments/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    name: document.getElementById('inlineDepartmentName').value.trim(),
+                    boss_full_name: document.getElementById('inlineDepartmentBoss').value.trim(),
+                }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload?.detail || payload?.message || 'Цех не создан');
+            }
+
+            appendDepartmentOption(payload.data, true);
+            closeInlineOrgModal('department');
+            showToast('Цех успешно создан');
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            setLoading(saveButton, false);
+        }
+    }
+
+    async function saveInlineSection(event) {
+        event.preventDefault();
+
+        const departmentId = document.getElementById('inlineSectionDepartment').value;
+        if (!departmentId) {
+            showToast('Сначала выберите цех для отдела', 'error');
+            return;
+        }
+
+        const saveButton = document.getElementById('inlineSectionSaveButton');
+        setLoading(saveButton, true, 'Сохранение...');
+
+        try {
+            const response = await fetch(`${API_BASE}/template/sections/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    name: document.getElementById('inlineSectionName').value.trim(),
+                    department_id: Number(departmentId),
+                }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload?.detail || payload?.message || 'Отдел не создан');
+            }
+
+            document.getElementById('department_id').value = String(departmentId);
+            appendSectionOption(payload.data, true);
+            closeInlineOrgModal('section');
+            showToast('Отдел успешно создан');
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            setLoading(saveButton, false);
+        }
+    }
+
+    async function saveEmployeePage(event) {
+        event.preventDefault();
+        if (pageMode !== 'edit') {
+            return;
+        }
+
+        const saveButton = document.getElementById('saveButton');
+        setLoading(saveButton, true, 'Сохранение...');
+
+        const formData = new FormData();
+        ['first_name', 'last_name', 'surname', 'tabel_number', 'gender', 'date_of_birth', 'position', 'boss_full_name', 'special_clothing_size', 'shoe_size', 'jacket_size', 'tshirt_size', 'date_of_employment', 'phone_number_1', 'phone_number_2', 'login'].forEach(id => {
+            formData.append(id, document.getElementById(id).value);
+        });
+        const adminClotheInput = document.getElementById('clothe_size_admin');
+        if (adminClotheInput) {
+            formData.append('clothe_size', adminClotheInput.value);
+        }
+
+        const passwordVal = document.getElementById('password') ? document.getElementById('password').value : '';
+        const passwordConfirmVal = document.getElementById('password_confirm') ? document.getElementById('password_confirm').value : '';
+        if (passwordVal) {
+            if (passwordVal !== passwordConfirmVal) {
+                showToast('Пароли не совпадают', 'error');
+                setLoading(saveButton, false);
+                return;
+            }
+            formData.append('password', passwordVal);
+            formData.append('password_confirm', passwordConfirmVal);
+        }
+
+        formData.append('is_active', document.getElementById('is_active').value === 'true');
+
+        const faceIdCheckoutField = document.getElementById('requires_face_id_checkout');
+        if (faceIdCheckoutField) {
+            formData.append('requires_face_id_checkout', faceIdCheckoutField.value === 'true');
+        }
+
+        const departmentId = document.getElementById('department_id').value;
+        const sectionId = document.getElementById('section_id').value;
+        if (departmentId) {
+            formData.append('department_id', departmentId);
+        }
+        if (sectionId) {
+            formData.append('section_id', sectionId);
+        }
+
+        const baseImageField = document.getElementById('base_image');
+        const imageFile = baseImageField ? baseImageField.files[0] : null;
+        if (imageFile) {
+            formData.append('base_image', imageFile);
+        } else if (window._capturedBlob) {
+            formData.append('base_image', window._capturedBlob, 'camera_photo.jpg');
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/employees/${employeeSlug}/`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload?.detail || payload?.message || 'Запрос не выполнен');
+            }
+
+            showToast('Сотрудник успешно обновлён');
+            window.setTimeout(() => {
+                window.location.href = `/employees/${payload.slug || employeeSlug}/`;
+            }, 300);
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            setLoading(saveButton, false);
+        }
+    }
+
+    function openSizeEditModal() {
+        const modal = document.getElementById('sizeEditModal');
+        if (!modal) {
+            return;
+        }
+
+        document.getElementById('sizeModalSpecialClothing').value = document.getElementById('special_clothing_size').value;
+        document.getElementById('sizeModalShoe').value = document.getElementById('shoe_size').value;
+        document.getElementById('sizeModalJacket').value = document.getElementById('jacket_size').value;
+        document.getElementById('sizeModalTshirt').value = document.getElementById('tshirt_size').value;
+        const clotheInput = document.getElementById('clothe_size');
+        const modalClotheInput = document.getElementById('sizeModalClothe');
+        if (clotheInput && modalClotheInput) {
+            modalClotheInput.value = clotheInput.value;
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeSizeEditModal() {
+        const modal = document.getElementById('sizeEditModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function saveSizeModal() {
+        const saveButton = document.getElementById('sizeModalSaveButton');
+        setLoading(saveButton, true, 'Сохранение...');
+
+        const formData = new FormData();
+        formData.append('special_clothing_size', document.getElementById('sizeModalSpecialClothing').value.trim());
+        formData.append('shoe_size', document.getElementById('sizeModalShoe').value.trim());
+        formData.append('jacket_size', document.getElementById('sizeModalJacket').value.trim());
+        formData.append('tshirt_size', document.getElementById('sizeModalTshirt').value.trim());
+        const modalClotheInput = document.getElementById('sizeModalClothe');
+        if (modalClotheInput) {
+            formData.append('clothe_size', modalClotheInput.value.trim());
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/employees/${employeeSlug}/`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload?.detail || payload?.message || 'Размеры не обновлены');
+            }
+
+            document.getElementById('special_clothing_size').value = payload.special_clothing_size || '';
+            document.getElementById('shoe_size').value = payload.shoe_size || '';
+            document.getElementById('jacket_size').value = payload.jacket_size || '';
+            document.getElementById('tshirt_size').value = payload.tshirt_size || '';
+            const clotheInput = document.getElementById('clothe_size');
+            if (clotheInput) {
+                clotheInput.value = payload.clothe_size || '';
+            }
+            const adminClotheInput = document.getElementById('clothe_size_admin');
+            if (adminClotheInput) {
+                adminClotheInput.value = payload.clothe_size || '';
+            }
+            closeSizeEditModal();
+            showToast('Размеры успешно обновлены');
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            setLoading(saveButton, false);
+        }
+    }
+
+    let cameraStream = null;
+    window._capturedBlob = null;
+    window._cameraMode = null;
+
+    function handleEmployeePhotoSelection(event) {
+        const [file] = event.target.files || [];
+        if (!file) {
+            return;
+        }
+
+        window._capturedBlob = null;
+        const previewUrl = URL.createObjectURL(file);
+        updateEmployeeImagePreview(
+            previewUrl,
+            'Выбран новый файл. Нажмите Сохранить, чтобы обновить фото и Face ID.',
+            'После сохранения Face ID будет использовать выбранное новое фото.'
+        );
+    }
+
+    function updateEmployeeImagePreview(imageUrl, hintText, faceStatusText) {
+        const photoPreviewImage = document.getElementById('photoPreviewImage');
+        const photoPreviewPlaceholder = document.getElementById('photoPreviewPlaceholder');
+        const faceIdPreviewImage = document.getElementById('faceIdPreviewImage');
+        const faceIdPreviewPlaceholder = document.getElementById('faceIdPreviewPlaceholder');
+
+        [photoPreviewImage, faceIdPreviewImage].forEach(imageEl => {
+            if (!imageEl) {
+                return;
+            }
+            imageEl.src = imageUrl || '';
+            imageEl.classList.toggle('hidden', !imageUrl);
+        });
+
+        [photoPreviewPlaceholder, faceIdPreviewPlaceholder].forEach(placeholderEl => {
+            if (!placeholderEl) {
+                return;
+            }
+            placeholderEl.classList.toggle('hidden', Boolean(imageUrl));
+        });
+
+        const photoChangeHint = document.getElementById('photoChangeHint');
+        if (photoChangeHint && hintText) {
+            photoChangeHint.textContent = hintText;
+        }
+
+        const faceIdStatus = document.getElementById('faceIdStatus');
+        if (faceIdStatus && faceStatusText) {
+            faceIdStatus.textContent = faceStatusText;
+        }
+    }
+
+    function clearPendingEmployeeImage() {
+        const baseImageField = document.getElementById('base_image');
+        if (baseImageField) {
+            baseImageField.value = '';
+        }
+
+        window._capturedBlob = null;
+        updateEmployeeImagePreview(
+            currentEmployeeImageUrl || '',
+            currentEmployeeImageUrl ? 'Сейчас используется текущее фото сотрудника.' : 'Фото пока не загружено.',
+            currentEmployeeImageUrl ? 'Face ID сейчас использует текущее базовое изображение сотрудника.' : 'Для Face ID пока нет базового изображения.'
+        );
+        showToast('Новое изображение сброшено', 'success');
+    }
+
+    function openCameraSession(mode) {
+        const modal = document.getElementById('cameraModal');
+        const video = document.getElementById('cameraVideo');
+        const title = document.getElementById('cameraModalTitle');
+        const hint = document.getElementById('cameraModalHint');
+        const captureButton = document.getElementById('cameraCaptureButton');
+
+        if (!modal || !video) {
+            return;
+        }
+
+        window._cameraMode = mode;
+        title.textContent = mode === 'face-id' ? 'Обновление Face ID' : 'Смена фотографии';
+        hint.textContent = mode === 'face-id'
+            ? 'Сделайте снимок лица. Перед сохранением кадр будет проверен на наличие лица.'
+            : 'Сделайте новое фото сотрудника.';
+        captureButton.innerHTML = mode === 'face-id'
+            ? '<i class="fas fa-face-smile mr-2"></i>Снять для Face ID'
+            : '<i class="fas fa-camera mr-2"></i>Снять';
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            .then(stream => {
+                cameraStream = stream;
+                video.srcObject = stream;
+            })
+            .catch(() => {
+                showToast('Не удалось получить доступ к камере', 'error');
+                closeCameraSession();
+            });
+    }
+
+    function closeCameraSession() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+
+        const video = document.getElementById('cameraVideo');
+        if (video) {
+            video.srcObject = null;
+        }
+
+        const modal = document.getElementById('cameraModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        window._cameraMode = null;
+    }
+
+    async function captureCameraFrame() {
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('cameraCanvas');
+        const captureMode = window._cameraMode;
+
+        if (!video || !video.videoWidth || !video.videoHeight) {
+            showToast('Камера ещё не готова. Повторите через секунду.', 'error');
+            return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+        if (!blob) {
+            showToast('Не удалось подготовить изображение', 'error');
+            return;
+        }
+
+        if (captureMode === 'face-id') {
+            const verificationOk = await validateFaceIdCapture(dataUrl);
+            if (!verificationOk) {
+                return;
+            }
+        }
+
+        const baseImageField = document.getElementById('base_image');
+        if (baseImageField) {
+            baseImageField.value = '';
+        }
+
+        window._capturedBlob = blob;
+        const previewUrl = URL.createObjectURL(blob);
+        const hintText = captureMode === 'face-id'
+            ? 'Подготовлен новый снимок для Face ID. Нажмите Сохранить, чтобы обновить изображение сотрудника.'
+            : 'Подготовлен новый снимок сотрудника. Нажмите Сохранить, чтобы обновить фото.';
+        const faceStatusText = captureMode === 'face-id'
+            ? 'Новый Face ID снимок подготовлен и ожидает сохранения.'
+            : 'Face ID будет использовать новое фото после сохранения.';
+
+        updateEmployeeImagePreview(previewUrl, hintText, faceStatusText);
+        closeCameraSession();
+        showToast(captureMode === 'face-id' ? 'Снимок Face ID подготовлен' : 'Новое фото подготовлено');
+    }
+
+    async function validateFaceIdCapture(capturedImage) {
+        try {
+            const response = await fetch(`${API_BASE}/face/detect-boxes/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ captured_image: capturedImage }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload?.error || payload?.message || 'Face ID проверка не выполнена');
+            }
+
+            if (!payload.count) {
+                showToast('Лицо не найдено. Повторите снимок для Face ID.', 'error');
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            showToast(error.message || 'Ошибка проверки Face ID', 'error');
+            return false;
+        }
+    }
+</script>
+{% endblock %}

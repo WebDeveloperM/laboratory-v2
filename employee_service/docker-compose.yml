@@ -1,0 +1,41 @@
+services:
+  employee-service:
+    build:
+      context: .
+    container_name: es_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    # gunicorn — runserver o'rniga. runserver Django'ning ishlab chiqish serveri:
+    # bir vaqtda kelgan bir nechta so'rovni ko'tara olmaydi, yuzni tanish esa
+    # protsessorni uzoq band qiladi. Natijada sahifa qotib qolardi va nginx 502 berardi.
+    # --timeout 120: yuz tekshiruvi sekin bo'lsa, ishchi jarayon o'ldirilmasin.
+    command: >
+      sh -c "python manage.py migrate &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:5000 --workers 3 --timeout 120"
+    environment:
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,employee-service}
+      EMPLOYEE_SERVICE_API_KEYS: "dev-employee-service-key"
+      FACE_SIMILARITY_THRESHOLD: "72.0"
+      # Konteyner ichida "localhost" konteynerning o'zini bildiradi, shuning uchun
+      # .env dagi qiymat bu yerda bekor qilinadi: baza xost mashinada turadi.
+      EMPLOYEE_SERVICE_DB_HOST: host.docker.internal
+    volumes:
+      - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: es_https
+    restart: unless-stopped
+    depends_on:
+      - employee-service
+    ports:
+      - "5000:443"
+    volumes:
+      - ./nginx.standalone.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      # Rasmlarni nginx to'g'ridan-to'g'ri uzatishi uchun (nginx.standalone.conf dagi
+      # "location /media/" blokiga qarang). Faqat o'qish uchun.
+      - ./media:/app/media:ro

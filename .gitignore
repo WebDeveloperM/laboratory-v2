@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# DIQQAT: bu repozitoriy ISHGA TAYYOR holda saqlanadi — serverda faqat
+# "git clone" + "docker compose up" bajariladi, qo'lda sozlash yo'q.
+#
+# Shu sabab .env fayllar, TLS kalitlari va media ATAYLAB kiritilgan.
+# Ular ichida parollar va xodimlarning shaxsiy ma'lumotlari bor, shuning uchun
+# repozitoriy FAQAT PRIVATE bo'lishi shart. Ochiq qilinmasin.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── Qurilish natijalari: Docker o'zi yaratadi, git'da saqlash shart emas ────
+.venv/
+venv/
+env/
+ENV/
+node_modules/
+base_laboratory/frontend/node_modules/
+dist/
+build/
+.vite/
+staticfiles/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ─── Media: git orqali emas, alohida ko'chiriladi ───────────────────────────
+# employee_service/media yolg'iz o'zi 1.7 GB — GitHub bitta push uchun ~2 GB
+# cheklaydi. Bu fayllar kod emas va o'zgarmaydi, shuning uchun serverga
+# robocopy bilan bir marta ko'chiriladi.
+media/
+nnn_media/
+
+# ─── Katta va keraksiz arxivlar ──────────────────────────────────────────────
+*.zip
+*.dump
+*.tar
+*.tar.gz
+
+# Eski employee_service nusxasi — kerak bo'lmasa o'chirsa bo'ladi
+employee_service2/
+
+# ─── Eski, ishlatilmaydigan fayllar ──────────────────────────────────────────
+# sqlite_to_postgres.load ichida ochiq parol bor, sqlite_dump.sql esa eski nusxa
+sqlite_to_postgres.load
+sqlite_dump.sql
+*.sqlite3
+db.sqlite3
+
+# ─── Loglar, muharrir va OS fayllari ─────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log*
+.idea/
+.vscode/
+.claude/
+.DS_Store
+Thumbs.db
+*.swp
+local_settings.py

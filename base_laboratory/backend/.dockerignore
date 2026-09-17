@@ -1,0 +1,15 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+db.sqlite3
+media/
+static/
+staticfiles/
+base/ml_models/
+.env
+.env.*
+.git
+.gitignore
+*.log
+logs/

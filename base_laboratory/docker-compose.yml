@@ -1,0 +1,60 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: laboratory_backend:latest
+    container_name: laboratory_backend
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: host.docker.internal
+      EMPLOYEE_SERVICE_BASE_URL: https://192.168.2.72:5000
+      EMPLOYEE_SERVICE_PUBLIC_URL: https://192.168.2.72:5000
+      EMPLOYEE_SERVICE_VERIFY_SSL: "false"
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8020"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  backend-nginx:
+    image: nginx:1.27-alpine
+    container_name: laboratory_backend_proxy
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8020:443"
+    volumes:
+      - ./backend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./backend/certs:/etc/nginx/certs:ro
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    image: laboratory_frontend:latest
+    container_name: laboratory_frontend
+    restart: unless-stopped
+    ports:
+      - "6020:6020"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      BACKEND_INTERNAL_URL: http://backend:8020
+    volumes:
+      - ./frontend:/app
+      - ./.env:/app/.env:ro
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend-nginx
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  frontend_node_modules:

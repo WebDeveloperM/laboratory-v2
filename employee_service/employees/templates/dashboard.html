@@ -1,0 +1,1010 @@
+{% extends 'base.html' %}
+
+{% block title %}Сотрудники - Сервис сотрудников{% endblock %}
+
+{% block content %}
+<section class="space-y-6">
+    <div class="panel-card rounded-[28px] p-6 lg:p-8">
+        <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+                <h2 class="font-display text-3xl font-bold text-slate-900">Список сотрудников</h2>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button id="openImportModalButton" onclick="openImportModal()"
+                    class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                    <i class="fas fa-file-import text-blue-600"></i>
+                    Импорт Excel
+                </button>
+                <button onclick="exportEmployees()"
+                    class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                    <i class="fas fa-file-export text-emerald-600"></i>
+                    Экспорт Excel
+                </button>
+                <a href="/employees/create/"
+                    class="inline-flex items-center gap-2 rounded-2xl bg-[var(--info)] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20">
+                    <i class="fas fa-plus"></i>
+                    Добавить сотрудника
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="statsContainer" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"></div>
+
+    <div class="panel-card rounded-[28px] p-4 sm:p-5 lg:p-6">
+        <div class="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="button" onclick="resetColumnFilters()"
+                    class="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-800 transition hover:bg-slate-200/80">
+                    Все сотрудники: <span id="employeeCountBadge">0</span>
+                </button>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                    Показать:
+                    <select id="pageSizeSelect"
+                        class="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div class="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <i class="fas fa-magnifying-glass text-slate-400"></i>
+                    <input id="globalSearchInput" type="text" placeholder="Поиск по имени, табелю, должности..."
+                        class="w-full min-w-[240px] border-0 bg-transparent p-0 text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:outline-none">
+                </div>
+                <button onclick="applyServerFilters()"
+                    class="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white">Искать</button>
+                <div id="treeFilterControl" class="sm:min-w-[260px]">
+                    <button id="treeFilterButton" onclick="toggleTreeFilterDropdown()"
+                        class="inline-flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-blue-200 hover:bg-blue-50/40">
+                        <span class="flex min-w-0 items-center gap-3">
+                            <i class="fas fa-filter text-blue-600"></i>
+                            <span class="min-w-0">
+                                <span
+                                    class="block text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Фильтр</span>
+                                <span id="treeFilterButtonText"
+                                    class="block truncate text-sm font-bold text-slate-800">Все цехи и отделы</span>
+                            </span>
+                        </span>
+                        <i id="treeFilterButtonChevron"
+                            class="fas fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="treeFilterMenu" class="mb-2 hidden rounded-xl border border-slate-200 bg-white">
+            <div class="flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
+                <div class="min-w-0">
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Фильтр сотрудников</p>
+                    <p class="text-xs font-semibold text-slate-600">Выберите цех или отдел.</p>
+                </div>
+                <div class="flex min-w-0 flex-1 items-center justify-end gap-2">
+                    <div
+                        class="flex w-full max-w-[520px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+                        <i class="fas fa-magnifying-glass text-slate-400"></i>
+                        <input id="treeFilterSearch" type="text" placeholder="Поиск по цеху или отделу..."
+                            oninput="renderTreeFilterOptions()"
+                            class="w-full border-0 bg-transparent p-0 text-xs font-semibold text-slate-700 placeholder:text-slate-400 focus:outline-none">
+                    </div>
+                    <button type="button" onclick="clearTreeFilterSelection()"
+                        class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50">Сброс</button>
+                </div>
+            </div>
+            <div id="treeFilterTree" class="max-h-[280px] overflow-y-auto p-1.5"></div>
+        </div>
+
+        <div class="overflow-x-auto rounded-[24px] border border-slate-200 bg-white">
+            <table class="min-w-full border-separate border-spacing-0">
+                <thead>
+                    <tr class="bg-slate-50 text-left text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+                        <th class="px-4 py-4">№</th>
+                        <th class="w-[140px] px-4 py-4">Табельный номер</th>
+                        <th class="px-4 py-4">Пользователь</th>
+                        <th class="w-[240px] px-4 py-4">Цех</th>
+                        <th class="w-[240px] px-4 py-4">Отдел</th>
+                        <th class="px-4 py-4">Должность</th>
+                        <th class="px-4 py-4 text-center">Действия</th>
+                    </tr>
+                    <tr class="border-t border-slate-200 bg-white align-top">
+                        <th class="px-3 py-3"></th>
+                        <th class="w-[140px] px-3 py-3"><input id="filterTabel" class="table-filter" placeholder="Поиск..."></th>
+                        <th class="px-3 py-3"><input id="filterName" class="table-filter" placeholder="Поиск..."></th>
+                        <th class="w-[240px] px-3 py-3">
+                            <select id="filterDepartment" class="table-filter min-w-[220px]">
+                                <option value="">Все цехи</option>
+                            </select>
+                        </th>
+                        <th class="w-[240px] px-3 py-3">
+                            <select id="filterSection" class="table-filter min-w-[220px]">
+                                <option value="">Все отделы</option>
+                            </select>
+                        </th>
+                        <th class="px-3 py-3"><input id="filterPosition" class="table-filter" placeholder="Поиск...">
+                        </th>
+                        <th class="px-3 py-3 text-center">
+                            <button onclick="resetColumnFilters()"
+                                class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500">Сброс</button>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="employeesTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+
+            <div id="loading" class="hidden px-6 py-12 text-center">
+                <div class="loading"></div>
+                <p class="mt-3 text-sm font-semibold text-slate-500">Загрузка сотрудников...</p>
+            </div>
+
+            <div id="emptyState" class="hidden px-6 py-14 text-center">
+                <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-400">
+                    <i class="fas fa-users text-2xl"></i>
+                </div>
+                <p class="mt-4 text-sm font-semibold text-slate-700">Сотрудники не найдены</p>
+                <p class="mt-1 text-sm text-slate-500">Очистите фильтры или добавьте нового сотрудника.</p>
+            </div>
+        </div>
+
+        <div id="pagination" class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"></div>
+    </div>
+</section>
+
+<!-- Image Preview Modal -->
+<div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm"
+    onclick="if(event.target===this)closeImageModal()">
+    <div class="relative">
+        <button onclick="closeImageModal()"
+            class="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-600 shadow-lg hover:bg-slate-100">
+            <i class="fas fa-xmark text-lg"></i>
+        </button>
+        <img id="imageModalImg" src="" alt="" class="max-h-[80vh] max-w-[90vw] rounded-2xl shadow-2xl">
+    </div>
+</div>
+
+<div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+    onclick="if(event.target===this)closeImportModal()">
+    <div class="panel-card max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[28px] p-6 sm:p-7">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.24em] text-blue-600">Excel import</p>
+                <h3 class="mt-2 font-display text-2xl font-bold text-slate-900">Импорт сотрудников из Excel</h3>
+                <p class="mt-2 max-w-2xl text-sm text-slate-500">
+                    Загружайте файл .xlsx или .xls. Если хотя бы одна строка содержит ошибку, импорт будет полностью
+                    отменён.
+                </p>
+            </div>
+            <button onclick="closeImportModal()"
+                class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-50">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="mt-6 w-full">
+            <div class="w-full rounded-[24px] border border-slate-200 bg-slate-50/60 p-5">
+                <h4 class="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Что должно быть в Excel
+                </h4>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 mb-2 ">
+                    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Обязательно</p>
+                        <ul class="mt-3 space-y-2 text-sm font-semibold text-slate-700">
+                            <li>Табельный номер</li>
+                            <li>Имя</li>
+                            <li>Фамилия</li>
+                        </ul>
+                    </div>
+                    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Рекомендуется</p>
+                        <ul class="mt-3 space-y-2 text-sm font-semibold text-slate-700">
+                            <li>Цех</li>
+                            <li>Отдел</li>
+                            <li>Должность</li>
+                            <li>Дата приема на работу</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="rounded-[24px] border border-slate-200 bg-white p-5">
+                    <h4 class="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Загрузка файла</h4>
+                    <input id="importExcelInput" type="file" accept=".xlsx,.xls"
+                        class="mt-4 block w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-bold file:text-white hover:file:bg-blue-700">
+                    <div class="mt-4 rounded-[20px] border border-slate-200 bg-white p-4">
+                        <p class="text-sm font-bold text-slate-900">Фотографии сотрудников</p>
+                        <p class="mt-1 text-sm text-slate-500">Необязательно. Выберите несколько изображений или ZIP-архив. Имя файла должно совпадать с табельным номером, например EMP-901.jpg.</p>
+                        <input id="importEmployeeImagesInput" type="file" accept="image/*,.zip" multiple
+                            class="mt-4 block w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-600 file:px-4 file:py-2 file:text-sm file:font-bold file:text-white hover:file:bg-emerald-700">
+                    </div>
+                    <div class="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        Табельный номер должен быть уникальным. Если он повторяется в файле или уже существует в базе,
+                        импорт завершится ошибкой.
+                    </div>
+                    <div class="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        Для числовых табельных номеров с ведущими нулями храните колонку как текст в Excel.
+                    </div>
+                    <div class="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        Если фотография найдена по имени файла, она будет автоматически сохранена как базовое изображение сотрудника.
+                    </div>
+                    <div class="mt-5 flex flex-wrap gap-3">
+                        <button id="importExcelSubmitButton" onclick="submitExcelImport()"
+                            class="inline-flex items-center gap-2 rounded-2xl bg-[var(--info)] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20">
+                            <i class="fas fa-cloud-arrow-up"></i>
+                            Загрузить файл
+                        </button>
+                        <button onclick="closeImportModal()"
+                            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600">
+                            Отмена
+                        </button>
+                    </div>
+                    <div id="importResult" class="mt-5 hidden rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                    </div>
+                </div>
+
+
+                <!-- <div class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                    <p class="text-sm font-bold text-slate-900">Поддерживаемые колонки</p>
+                    <p class="mt-2 text-sm text-slate-500">Можно использовать русские заголовки или системные имена полей.</p>
+                    <div class="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-slate-700">
+                        <div>
+                            <p class="font-bold text-slate-900">Основные данные</p>
+                            <p class="mt-2">Табельный номер, Имя, Фамилия, Отчество, Пол, Дата рождения</p>
+                            <p class="mt-2">Рост, Размер одежды, Размер обуви</p>
+                            <p class="mt-2">Телефон 1, Телефон 2</p>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900">Оргструктура и статус</p>
+                            <p class="mt-2">Цех, Руководитель цеха, Отдел, Должность</p>
+                            <p class="mt-2">Дата приема на работу, Дата изменения должности</p>
+                            <p class="mt-2">Серия паспорта, Номер паспорта, ЖШШИР</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                        Логин создаётся автоматически из имени и фамилии, пароль генерируется сервисом, роль связанного пользователя всегда назначается как user, а поля Активен, Источник системы, Внешний ID и Метаданные из Excel не используются.
+                    </div>
+                </div> -->
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+
+<script>
+    let employeesCache = [];
+    let filteredEmployees = [];
+    let departmentsCache = [];
+    let sectionsCache = [];
+    let expandedTreeDepartmentIds = new Set();
+    let currentPage = 1;
+    let pageSize = 20;
+    let totalEmployees = 0;
+    let totalPages = 1;
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function openImageModal(src, alt) {
+        const modal = document.getElementById('imageModal');
+        const img = document.getElementById('imageModalImg');
+        img.src = src;
+        img.alt = alt;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    function getTreeFilterElements() {
+        return {
+            control: document.getElementById('treeFilterControl'),
+            menu: document.getElementById('treeFilterMenu'),
+            search: document.getElementById('treeFilterSearch'),
+            buttonText: document.getElementById('treeFilterButtonText'),
+            buttonChevron: document.getElementById('treeFilterButtonChevron'),
+            tree: document.getElementById('treeFilterTree'),
+        };
+    }
+
+    function toggleTreeFilterDropdown(forceOpen) {
+        const { menu, search, buttonChevron } = getTreeFilterElements();
+        const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menu.classList.contains('hidden');
+
+        if (shouldOpen) {
+            menu.classList.remove('hidden');
+            buttonChevron.classList.add('rotate-180');
+            renderTreeFilterOptions();
+            window.setTimeout(() => search.focus(), 0);
+            return;
+        }
+
+        closeTreeFilterDropdown();
+    }
+
+    function closeTreeFilterDropdown() {
+        const { menu, buttonChevron } = getTreeFilterElements();
+        menu.classList.add('hidden');
+        buttonChevron.classList.remove('rotate-180');
+    }
+
+    function resolveDepartmentById(departmentId) {
+        return departmentsCache.find(item => String(item.id) === String(departmentId)) || null;
+    }
+
+    function resolveSectionById(sectionId) {
+        return sectionsCache.find(item => String(item.id) === String(sectionId)) || null;
+    }
+
+    function syncTreeFilterButtonState() {
+        const { buttonText } = getTreeFilterElements();
+        const departmentId = document.getElementById('filterDepartment').value;
+        const sectionId = document.getElementById('filterSection').value;
+        const department = resolveDepartmentById(departmentId);
+        const section = resolveSectionById(sectionId);
+
+        if (section) {
+            buttonText.textContent = `${department?.name || 'Цех'} / ${section.name}`;
+            return;
+        }
+
+        if (department) {
+            buttonText.textContent = department.name;
+            return;
+        }
+
+        buttonText.textContent = 'Все цехи и отделы';
+    }
+
+    function toggleTreeDepartmentGroup(departmentId) {
+        const normalizedId = String(departmentId);
+        if (expandedTreeDepartmentIds.has(normalizedId)) {
+            expandedTreeDepartmentIds.delete(normalizedId);
+        } else {
+            expandedTreeDepartmentIds.add(normalizedId);
+        }
+        renderTreeFilterOptions();
+    }
+
+    function applyTreeFilterSelection(departmentId = '', sectionId = '') {
+        const filterDepartment = document.getElementById('filterDepartment');
+        const filterSection = document.getElementById('filterSection');
+        const normalizedDepartmentId = String(departmentId || '');
+        const normalizedSectionId = String(sectionId || '');
+
+        filterDepartment.value = normalizedDepartmentId;
+        populateSectionFilterOptions(normalizedDepartmentId);
+        filterSection.value = normalizedSectionId;
+        syncTreeFilterButtonState();
+        renderTreeFilterOptions();
+        closeTreeFilterDropdown();
+        loadEmployees(1);
+    }
+
+    function clearTreeFilterSelection() {
+        const filterDepartment = document.getElementById('filterDepartment');
+        const filterSection = document.getElementById('filterSection');
+        const { search } = getTreeFilterElements();
+
+        filterDepartment.value = '';
+        populateSectionFilterOptions('');
+        filterSection.value = '';
+        search.value = '';
+        syncTreeFilterButtonState();
+        renderTreeFilterOptions();
+        loadEmployees(1);
+    }
+
+    function renderTreeFilterOptions() {
+        const { tree, search } = getTreeFilterElements();
+        const selectedDepartmentId = document.getElementById('filterDepartment').value;
+        const selectedSectionId = document.getElementById('filterSection').value;
+        const searchValue = String(search?.value || '').trim().toLowerCase();
+
+        const treeData = departmentsCache.map(department => {
+            const sections = sectionsCache.filter(section => String(section.department?.id || section.department_id || '') === String(department.id));
+            return { department, sections };
+        }).filter(item => {
+            if (!searchValue) {
+                return true;
+            }
+
+            const departmentMatch = item.department.name.toLowerCase().includes(searchValue);
+            const sectionMatch = item.sections.some(section => section.name.toLowerCase().includes(searchValue));
+            return departmentMatch || sectionMatch;
+        });
+
+        if (!treeData.length) {
+            tree.innerHTML = '<div class="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs font-semibold text-slate-500">Ничего не найдено.</div>';
+            return;
+        }
+
+        tree.innerHTML = `
+            ${treeData.map(item => {
+            const departmentId = String(item.department.id);
+            const departmentSelected = selectedDepartmentId === departmentId && !selectedSectionId;
+            const departmentExpanded = expandedTreeDepartmentIds.has(departmentId) || Boolean(searchValue) || selectedDepartmentId === departmentId;
+            const visibleSections = searchValue && !item.department.name.toLowerCase().includes(searchValue)
+                ? item.sections.filter(section => section.name.toLowerCase().includes(searchValue))
+                : item.sections;
+
+            return `
+                    <div class="mb-1.5 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                        <div class="flex items-center gap-1.5 px-1.5 py-1.5">
+                            <button type="button" onclick="toggleTreeDepartmentGroup('${departmentId}')" class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100">
+                                <i class="fas ${departmentExpanded ? 'fa-chevron-down' : 'fa-chevron-right'} text-xs"></i>
+                            </button>
+                            <button type="button" onclick="applyTreeFilterSelection('${departmentId}', '')" class="flex min-w-0 flex-1 items-center justify-between rounded-md px-2.5 py-1.5 text-left transition ${departmentSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'}">
+                                <span class="min-w-0">
+                                    <span class="block truncate text-xs font-bold text-slate-800">${escapeHtml(item.department.name)}</span>
+                                    ${item.department.boss_full_name ? `<span class="block truncate text-[11px] font-semibold text-slate-400">${escapeHtml(item.department.boss_full_name)}</span>` : ''}
+                                </span>
+                                <span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">${visibleSections.length}</span>
+                            </button>
+                        </div>
+                        <div class="${departmentExpanded ? 'block' : 'hidden'} border-t border-slate-100 bg-slate-50/70 px-1.5 py-1.5">
+                            ${visibleSections.length ? visibleSections.map(section => {
+                const sectionId = String(section.id);
+                const sectionSelected = selectedSectionId === sectionId;
+                return `
+                                    <button type="button" onclick="applyTreeFilterSelection('${departmentId}', '${sectionId}')" class="mb-1 flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs transition ${sectionSelected ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-blue-50'}">
+                                        <i class="fas fa-arrow-turn-up text-xs ${sectionSelected ? 'text-blue-100' : 'text-slate-300'}"></i>
+                                        <span class="truncate font-semibold">${escapeHtml(section.name)}</span>
+                                    </button>
+                                `;
+            }).join('') : '<div class="rounded-md border border-dashed border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-400">У этого цеха пока нет отделов.</div>'}
+                        </div>
+                    </div>
+                `;
+        }).join('')}
+        `;
+    }
+
+    function openImportModal() {
+        const modal = document.getElementById('importModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        hideImportResult();
+    }
+
+    function closeImportModal() {
+        const modal = document.getElementById('importModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        hideImportResult();
+    }
+
+    function hideImportResult() {
+        const container = document.getElementById('importResult');
+        container.classList.add('hidden');
+        container.innerHTML = '';
+    }
+
+    function getImportErrorMessage(item) {
+        if (item?.message) {
+            return item.message;
+        }
+
+        if (item?.errors && typeof item.errors === 'object') {
+            const firstFieldErrors = Object.values(item.errors).find(value => Array.isArray(value) && value.length);
+            if (firstFieldErrors) {
+                return firstFieldErrors[0];
+            }
+        }
+
+        return item?.tabel_number || 'Ошибка проверки';
+    }
+
+    function renderImportResult(payload, type = 'success') {
+        const container = document.getElementById('importResult');
+        const errors = Array.isArray(payload?.errors) ? payload.errors : [];
+        const employees = Array.isArray(payload?.employees) ? payload.employees : [];
+        const rows = errors.slice(0, 8).map(item => {
+            const fields = Array.isArray(item?.fields) && item.fields.length
+                ? `<div class="mt-2 text-xs font-semibold text-red-600">Поля: ${escapeHtml(item.fields.join(', '))}</div>`
+                : '';
+            const rowsInfo = Array.isArray(item?.rows) && item.rows.length
+                ? `<div class="mt-2 text-xs font-semibold text-red-600">Строки: ${escapeHtml(item.rows.join(', '))}</div>`
+                : '';
+            return `
+                <div class="rounded-2xl border border-slate-200 bg-white p-3">
+                    <div class="text-sm font-bold text-slate-900">Строка ${escapeHtml(item.row || '—')}</div>
+                    <div class="mt-1 text-sm text-slate-600">${escapeHtml(getImportErrorMessage(item))}</div>
+                    ${fields}
+                    ${rowsInfo}
+                </div>
+            `;
+        }).join('');
+
+        const palette = type === 'success'
+            ? 'border-emerald-200 bg-emerald-50'
+            : 'border-red-200 bg-red-50';
+
+        const generatedCredentials = type === 'success' && employees.length
+            ? `
+                <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Сгенерированные доступы</div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-white text-left text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                                <tr>
+                                    <th class="px-4 py-3">Табельный</th>
+                                    <th class="px-4 py-3">Сотрудник</th>
+                                    <th class="px-4 py-3">Логин</th>
+                                    <th class="px-4 py-3">Пароль</th>
+                                    <th class="px-4 py-3">Роль</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                ${employees.map(item => `
+                                    <tr>
+                                        <td class="px-4 py-3 font-semibold text-slate-700">${escapeHtml(item.tabel_number || '—')}</td>
+                                        <td class="px-4 py-3 text-slate-600">${escapeHtml(item.full_name || '—')}</td>
+                                        <td class="px-4 py-3 font-mono text-slate-900">${escapeHtml(item.login || '—')}</td>
+                                        <td class="px-4 py-3 font-mono text-slate-900">${escapeHtml(item.generated_password || '—')}</td>
+                                        <td class="px-4 py-3 text-slate-600">${escapeHtml(item.role || 'user')}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `
+            : '';
+
+        container.className = `mt-5 rounded-[24px] border p-4 ${palette}`;
+        container.innerHTML = `
+            <div class="flex items-start gap-3">
+                <div class="mt-0.5 text-lg ${type === 'success' ? 'text-emerald-600' : 'text-red-600'}">
+                    <i class="fas ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="text-sm font-bold text-slate-900">${escapeHtml(payload?.message || '')}</div>
+                    ${payload?.created_count ? `<div class="mt-1 text-sm text-slate-600">Добавлено сотрудников: ${escapeHtml(payload.created_count)}</div>` : ''}
+                    ${payload?.imported_with_images ? `<div class="mt-1 text-sm text-slate-600">Фотографий привязано: ${escapeHtml(payload.imported_with_images)}</div>` : ''}
+                    ${generatedCredentials}
+                    ${errors.length ? `<div class="mt-4 grid gap-3">${rows}</div>` : ''}
+                    ${errors.length > 8 ? `<div class="mt-3 text-xs font-semibold text-slate-500">Показаны первые 8 ошибок из ${escapeHtml(errors.length)}.</div>` : ''}
+                </div>
+            </div>
+        `;
+        container.classList.remove('hidden');
+    }
+
+    function showImportErrorToasts(payload) {
+        const errors = Array.isArray(payload?.errors) ? payload.errors : [];
+        const messages = [];
+
+        if (payload?.message) {
+            messages.push(payload.message);
+        }
+
+        errors.slice(0, 3).forEach(item => {
+            const rowLabel = item?.row ? `Строка ${item.row}: ` : '';
+            messages.push(`${rowLabel}${getImportErrorMessage(item)}`);
+        });
+
+        if (!messages.length) {
+            messages.push('Импорт не выполнен. Проверьте данные и повторите попытку.');
+        }
+
+        messages.forEach((message, index) => {
+            window.setTimeout(() => showToast(message, 'error'), index * 3400);
+        });
+    }
+
+    async function submitExcelImport() {
+        const input = document.getElementById('importExcelInput');
+        const imageInput = document.getElementById('importEmployeeImagesInput');
+        const button = document.getElementById('importExcelSubmitButton');
+        const file = input.files?.[0];
+
+        if (!file) {
+            showToast('Выберите Excel-файл для импорта.', 'info');
+            return;
+        }
+
+        try {
+            setLoading(button, true, 'Импорт...');
+            const rows = await readExcelFile(file);
+            if (!rows.length) {
+                throw new Error('Файл пустой. Заполните хотя бы одну строку.');
+            }
+
+            const formData = new FormData();
+            formData.append('file_name', file.name);
+            formData.append('rows', JSON.stringify(rows));
+            Array.from(imageInput?.files || []).forEach(imageFile => {
+                formData.append('images', imageFile);
+            });
+
+            const payload = await apiRequest('/template/employees/import-excel/', {
+                method: 'POST',
+                body: formData,
+            });
+
+            renderImportResult(payload, 'success');
+            showToast(payload.message || 'Импорт завершён');
+            input.value = '';
+            if (imageInput) {
+                imageInput.value = '';
+            }
+            await Promise.all([loadStats(), loadDirectoryData(), loadEmployees(1)]);
+        } catch (error) {
+            const responsePayload = error.responseData || { message: error.message };
+            hideImportResult();
+            showImportErrorToasts(responsePayload);
+        } finally {
+            setLoading(button, false);
+        }
+    }
+
+    function readExcelFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('Не удалось прочитать Excel-файл.'));
+            reader.onload = event => {
+                try {
+                    const workbook = XLSX.read(event.target.result, { type: 'array', cellDates: true });
+                    const firstSheetName = workbook.SheetNames[0];
+                    if (!firstSheetName) {
+                        reject(new Error('В файле нет доступных листов.'));
+                        return;
+                    }
+
+                    const sheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(sheet, {
+                        defval: '',
+                        raw: false,
+                        dateNF: 'yyyy-mm-dd',
+                        blankrows: false,
+                    });
+                    resolve(rows);
+                } catch (readError) {
+                    reject(new Error('Не удалось обработать Excel-файл. Проверьте структуру таблицы.'));
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeImageModal();
+            closeImportModal();
+            closeTreeFilterDropdown();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        bindFilters();
+        await Promise.all([loadStats(), loadDirectoryData()]);
+        await loadEmployees();
+    });
+
+    function bindFilters() {
+        document.getElementById('pageSizeSelect').addEventListener('change', function () {
+            pageSize = Number(this.value) || 20;
+            currentPage = 1;
+            loadEmployees(1);
+        });
+
+        document.getElementById('globalSearchInput').addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                applyServerFilters();
+            }
+        });
+
+        ['filterTabel', 'filterName', 'filterPosition'].forEach(id => {
+            document.getElementById(id).addEventListener('input', scheduleServerFilterReload);
+            document.getElementById(id).addEventListener('change', scheduleServerFilterReload);
+        });
+
+        document.getElementById('filterDepartment').addEventListener('change', function () {
+            const departmentId = this.value;
+            const currentSectionId = document.getElementById('filterSection').value;
+            populateSectionFilterOptions(departmentId);
+            const selectedSection = resolveSectionById(currentSectionId);
+            const sectionBelongsToDepartment = selectedSection && String(selectedSection.department?.id || selectedSection.department_id || '') === String(departmentId || '');
+            if (currentSectionId && !sectionBelongsToDepartment) {
+                document.getElementById('filterSection').value = '';
+            }
+            syncTreeFilterButtonState();
+            renderTreeFilterOptions();
+            scheduleServerFilterReload();
+        });
+
+        document.getElementById('filterSection').addEventListener('change', function () {
+            const section = resolveSectionById(this.value);
+            const filterDepartment = document.getElementById('filterDepartment');
+            if (section) {
+                filterDepartment.value = String(section.department?.id || section.department_id || '');
+                populateSectionFilterOptions(filterDepartment.value);
+                this.value = String(section.id);
+            }
+            syncTreeFilterButtonState();
+            renderTreeFilterOptions();
+            scheduleServerFilterReload();
+        });
+    }
+
+    let dashboardReloadTimer = null;
+
+    function scheduleServerFilterReload() {
+        window.clearTimeout(dashboardReloadTimer);
+        dashboardReloadTimer = window.setTimeout(() => loadEmployees(1), 250);
+    }
+
+    async function loadStats() {
+        try {
+            const payload = await apiRequest('/template/employees/stats/');
+            const stats = payload.data || {};
+            const cards = [
+                { label: 'Все сотрудники', value: stats.total_employees || 0, icon: 'fa-users', bg: 'bg-blue-50', accent: 'text-blue-600' },
+                { label: 'Цеха', value: stats.total_departments || 0, icon: 'fa-industry', bg: 'bg-amber-50', accent: 'text-amber-600' },
+                { label: 'Отделы', value: stats.total_sections || 0, icon: 'fa-diagram-project', bg: 'bg-violet-50', accent: 'text-violet-600' },
+            ];
+
+            document.getElementById('statsContainer').innerHTML = cards.map(card => `
+            <article class="panel-card stat-card rounded-[24px] p-5">
+                <div class="relative z-10 flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-500">${card.label}</p>
+                        <p class="mt-3 text-4xl font-extrabold text-slate-900">${card.value}</p>
+                    </div>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl ${card.bg} ${card.accent}">
+                        <i class="fas ${card.icon}"></i>
+                    </div>
+                </div>
+            </article>
+        `).join('');
+        } catch (error) {
+            document.getElementById('statsContainer').innerHTML = '<div class="rounded-3xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">Не удалось загрузить статистику.</div>';
+        }
+    }
+
+    async function loadDirectoryData() {
+        const [departments, sections] = await Promise.all([
+            apiRequest('/departments/'),
+            apiRequest('/sections/'),
+        ]);
+
+        departmentsCache = Array.isArray(departments) ? departments : [];
+        sectionsCache = Array.isArray(sections) ? sections : [];
+        expandedTreeDepartmentIds = new Set();
+
+        populateDepartmentOptions();
+        populateSectionFilterOptions();
+        syncTreeFilterButtonState();
+        renderTreeFilterOptions();
+    }
+
+    function populateDepartmentOptions() {
+        const filterDepartment = document.getElementById('filterDepartment');
+
+        filterDepartment.innerHTML = '<option value="">Все цехи</option>';
+
+        departmentsCache.forEach(department => {
+            filterDepartment.innerHTML += `<option value="${department.id}">${department.name}</option>`;
+        });
+    }
+
+    function populateSectionFilterOptions(selectedDepartmentId = '') {
+        const filterSection = document.getElementById('filterSection');
+        filterSection.innerHTML = '<option value="">Все отделы</option>';
+
+        sectionsCache.filter(section => {
+            if (!selectedDepartmentId) {
+                return true;
+            }
+            return String(section.department?.id || section.department_id || '') === String(selectedDepartmentId);
+        }).forEach(section => {
+            filterSection.innerHTML += `<option value="${section.id}">${section.name}</option>`;
+        });
+    }
+
+    async function loadEmployees(page = 1) {
+        const loading = document.getElementById('loading');
+        const emptyState = document.getElementById('emptyState');
+        const tableBody = document.getElementById('employeesTableBody');
+        loading.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        tableBody.innerHTML = '';
+
+        try {
+            const search = document.getElementById('globalSearchInput').value.trim();
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            params.set('page_size', String(pageSize));
+            if (search) {
+                params.set('search', search);
+            }
+            const tabel = document.getElementById('filterTabel').value.trim();
+            const name = document.getElementById('filterName').value.trim();
+            const departmentId = document.getElementById('filterDepartment').value;
+            const sectionId = document.getElementById('filterSection').value;
+            const position = document.getElementById('filterPosition').value.trim();
+
+            if (tabel) params.set('tabel_number', tabel);
+            if (name) params.set('name', name);
+            if (departmentId) params.set('department_id', departmentId);
+            if (sectionId) params.set('section_id', sectionId);
+            if (position) params.set('position', position);
+
+            const payload = await apiRequest(`/template/employees/?${params.toString()}`);
+            employeesCache = Array.isArray(payload?.data) ? payload.data : [];
+            filteredEmployees = employeesCache;
+            totalEmployees = Number(payload?.count || 0);
+            totalPages = Math.max(1, Math.ceil(totalEmployees / pageSize));
+            currentPage = Math.min(Math.max(1, page), totalPages);
+            renderEmployees();
+        } catch (error) {
+            employeesCache = [];
+            filteredEmployees = [];
+            totalEmployees = 0;
+            totalPages = 1;
+            renderEmployees();
+            emptyState.classList.remove('hidden');
+        } finally {
+            loading.classList.add('hidden');
+        }
+    }
+
+    function applyServerFilters() {
+        loadEmployees(1);
+    }
+
+    function renderEmployees() {
+        const tableBody = document.getElementById('employeesTableBody');
+        const emptyState = document.getElementById('emptyState');
+        const employeeCountBadge = document.getElementById('employeeCountBadge');
+
+        employeeCountBadge.textContent = totalEmployees;
+
+        if (!filteredEmployees.length) {
+            tableBody.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            renderPagination();
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const pageItems = filteredEmployees;
+
+        tableBody.innerHTML = pageItems.map((employee, index) => {
+            const fullName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || '—';
+            const photo = employee.base_image_url || employee.base_image
+                ? `<img src="${employee.base_image_url || employee.base_image}" alt="${fullName}" class="h-10 w-10 rounded-2xl object-cover shadow-sm cursor-pointer" onclick="openImageModal('${employee.base_image_url || employee.base_image}', '${fullName.replace(/'/g, "\\'")}')">`
+                : `<div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><i class="fas fa-user"></i></div>`;
+            return `
+            <tr class="fade-in border-t border-slate-100 text-sm hover:bg-slate-50/80">
+                <td class="px-4 py-4 font-semibold text-slate-500">${startIndex + index + 1}</td>
+                <td class="w-[140px] px-4 py-4 font-semibold text-slate-700">${employee.tabel_number || '—'}</td>
+                <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                        ${photo}
+                        <div>
+                            <div class="font-bold text-slate-900">${fullName}</div>
+                            <div class="text-xs text-slate-500">${employee.slug || ''}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="w-[240px] px-4 py-4 text-slate-600">${employee.department?.name || '—'}</td>
+                <td class="w-[240px] px-4 py-4 text-slate-600">${employee.section?.name || '—'}</td>
+                <td class="px-4 py-4 text-slate-600">${employee.position || '—'}</td>
+                <td class="px-4 py-4">
+                    <div class="flex items-center justify-center gap-2">
+                        <a class="icon-action" href="/employees/${employee.slug}/" title="Просмотр"><i class="fas fa-eye"></i></a>
+                        <a class="icon-action" href="/employees/${employee.slug}/edit/" title="Редактировать"><i class="fas fa-pen"></i></a>
+                        <a class="icon-action danger" href="/employees/${employee.slug}/delete/" title="Удалить"><i class="fas fa-trash"></i></a>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }).join('');
+
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const pagination = document.getElementById('pagination');
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const start = totalEmployees ? ((currentPage - 1) * pageSize) + 1 : 0;
+        const end = filteredEmployees.length ? start + filteredEmployees.length - 1 : 0;
+
+        let buttons = '';
+        for (let page = 1; page <= totalPages; page += 1) {
+            if (page <= 5 || page === currentPage || page === totalPages) {
+                buttons += `<button onclick="goToPage(${page})" class="h-11 min-w-[44px] rounded-2xl border ${page === currentPage ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600'} px-4 text-sm font-bold">${page}</button>`;
+            }
+        }
+
+        pagination.innerHTML = `
+        <p class="text-sm font-semibold text-slate-500">Показано ${start}–${end} из ${totalEmployees}</p>
+        <div class="flex flex-wrap items-center gap-2">
+            <button onclick="goToPage(1)" class="h-11 min-w-[44px] rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-angles-left"></i></button>
+            <button onclick="goToPage(${Math.max(1, currentPage - 1)})" class="h-11 min-w-[44px] rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-angle-left"></i></button>
+            ${buttons}
+            <button onclick="goToPage(${Math.min(totalPages, currentPage + 1)})" class="h-11 min-w-[44px] rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-angle-right"></i></button>
+            <button onclick="goToPage(${totalPages})" class="h-11 min-w-[44px] rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-angles-right"></i></button>
+        </div>
+    `;
+    }
+
+    function goToPage(page) {
+        loadEmployees(page);
+    }
+
+    function resetColumnFilters() {
+        ['globalSearchInput', 'filterTabel', 'filterName', 'filterDepartment', 'filterSection', 'filterPosition'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        const { search } = getTreeFilterElements();
+        search.value = '';
+        populateSectionFilterOptions('');
+        syncTreeFilterButtonState();
+        renderTreeFilterOptions();
+        loadEmployees(1);
+    }
+
+    function exportEmployees() {
+        const rows = filteredEmployees.length ? filteredEmployees : employeesCache;
+        if (!rows.length) {
+            showToast('Нет сотрудников для экспорта', 'info');
+            return;
+        }
+
+        const data = rows.map((employee, i) => ({
+            '№': i + 1,
+            'Табельный номер': employee.tabel_number || '',
+            'Имя': employee.first_name || '',
+            'Фамилия': employee.last_name || '',
+            'Отчество': employee.surname || '',
+            'Цех': employee.department?.name || '',
+            'Отдел': employee.section?.name || '',
+            'Должность': employee.position || '',
+            'Дата приёма на работу': employee.date_of_employment || '',
+            'Статус': employee.is_active ? 'Активный' : 'Неактивный',
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const colWidths = Object.keys(data[0]).map(key => ({
+            wch: Math.max(key.length, ...data.map(r => String(r[key]).length)) + 2
+        }));
+        ws['!cols'] = colWidths;
+
+        const headerRange = XLSX.utils.decode_range(ws['!ref']);
+        for (let c = headerRange.s.c; c <= headerRange.e.c; c++) {
+            const addr = XLSX.utils.encode_cell({ r: 0, c: c });
+            if (ws[addr]) {
+                ws[addr].s = {
+                    fill: { fgColor: { rgb: '092482' } },
+                    font: { bold: true, color: { rgb: 'FFFFFF' } },
+                    alignment: { horizontal: 'center' }
+                };
+            }
+        }
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Сотрудники');
+        XLSX.writeFile(wb, 'сотрудники.xlsx');
+    }
+
+</script>
+{% endblock %}
