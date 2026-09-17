@@ -13,8 +13,8 @@ services:
       - ./backend/.env
     environment:
       POSTGRES_HOST: host.docker.internal
-      EMPLOYEE_SERVICE_BASE_URL: https://192.168.2.72:5000
-      EMPLOYEE_SERVICE_PUBLIC_URL: https://192.168.2.72:5000
+      EMPLOYEE_SERVICE_BASE_URL: https://192.168.101.6:5000
+      EMPLOYEE_SERVICE_PUBLIC_URL: https://192.168.101.6:5000
       EMPLOYEE_SERVICE_VERIFY_SSL: "false"
     command: >
       sh -c "python manage.py migrate &&
